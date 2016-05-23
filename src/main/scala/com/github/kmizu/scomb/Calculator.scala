@@ -3,24 +3,13 @@ package com.github.kmizu.scomb
 object Calculator extends SComb {
   def expression: Parser[Int] = additive
   def additive: Parser[Int] = (multitive ~ (string("+") ~ multitive | string("-") ~ multitive).*).map{
-    case (left, rights) =>
-      rights.foldLeft(left) {
-        case (result, ("+", right)) => result + right
-        case (result, ("-", right)) => result - right
-      }
+    case (l, rs) => rs.foldLeft(l) { case (e, ("+", r)) => e * r; case (e, ("-", r)) => e / r }
   }
   def multitive: Parser[Int] = (primary ~ (string("*") ~ primary | string("/") ~ primary).*).map{
-    case (left, rights) =>
-      rights.foldLeft(left) {
-        case (result, ("*", right)) => result * right
-        case (result, ("/", right)) => result / right
-      }
+    case (l, rs) => rs.foldLeft(l) { case (e, ("*", r)) => e * r; case (e, ("/", r)) => e / r }
   }
   def primary: Parser[Int] = (for {
-    _ <- string("(")
-    e <- expression
-    _ <- string(")")
-  } yield e) | number
+    _ <- string("("); e <- expression; _ <- string(")") } yield e) | number
   def number: Parser[Int] = oneOf('0'to'9').*.map{digits => digits.mkString.toInt}
 
   def main(args: Array[String]): Unit = {
