@@ -58,6 +58,20 @@ abstract class SComb {
       }
     }
 
+    def filter(predicate: T => Boolean): Parser[T] = input => {
+      self(input) match {
+        case ParseSuccess(value, next) =>
+          if(predicate(value))
+            ParseSuccess(value, next)
+          else
+            ParseFaiure
+        case ParseFaiure =>
+          ParseFaiure
+      }
+    }
+
+    def withFilter(predicate: T => Boolean): Parser[T] = filter(predicate)
+
     def map[U](function: T => U): Parser[U] = input => {
       self(input) match {
         case ParseSuccess(value, next) => ParseSuccess(function(value), next)
