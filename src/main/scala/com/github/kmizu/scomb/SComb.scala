@@ -43,6 +43,14 @@ abstract class SComb {
       }
     }
 
+    def chainl(q: Parser[(T, T) => T]): Parser[T] = {
+      (self ~ (q ~ self).*).map { case (x, xs) =>
+          xs.foldLeft(x) { case (a, (f, b)) =>
+              f(a, b)
+          }
+      }
+    }
+
     def |(right: Parser[T]): Parser[T] = input => {
       self(input) match {
         case success@ParseSuccess(_, _) => success

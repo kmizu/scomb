@@ -1,14 +1,16 @@
 package com.github.kmizu.scomb
 
 object Calculator extends SComb {
-  def expression: Parser[Int] = add
-  def add: Parser[Int] = (mult ~ (string("+") ~ mult | string("-") ~ mult).*).map{
-    case (l, rs) => rs.foldLeft(l) { case (e, ("+", r)) => e + r; case (e, ("-", r)) => e - r }
+  def expression: Parser[Int] = A
+  def A: Parser[Int] = M.chainl {
+    string("+").map{op => (lhs: Int, rhs: Int) => lhs + rhs} |
+    string("+").map{op => (lhs: Int, rhs: Int) => lhs - rhs}
   }
-  def mult: Parser[Int] = (prm ~ (string("*") ~ prm | string("/") ~ prm).*).map{
-    case (l, rs) => rs.foldLeft(l) { case (e, ("*", r)) => e * r; case (e, ("/", r)) => e / r }
+  def M: Parser[Int] = P.chainl {
+    string("*").map{op => (lhs: Int, rhs: Int) => lhs * rhs} |
+      string("/").map{op => (lhs: Int, rhs: Int) => lhs / rhs}
   }
-  def prm: Parser[Int] = (for {
+  def P: Parser[Int] = (for {
     _ <- string("("); e <- expression; _ <- string(")") } yield e) | number
   def number: Parser[Int] = oneOf('0'to'9').*.map{digits => digits.mkString.toInt}
 
