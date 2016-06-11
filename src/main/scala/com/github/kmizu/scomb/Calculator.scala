@@ -4,7 +4,7 @@ object Calculator extends SComb {
   def expression: Parser[Int] = A
   def A: Parser[Int] = M.chainl {
     string("+").map{op => (lhs: Int, rhs: Int) => lhs + rhs} |
-    string("+").map{op => (lhs: Int, rhs: Int) => lhs - rhs}
+    string("-").map{op => (lhs: Int, rhs: Int) => lhs - rhs}
   }
   def M: Parser[Int] = P.chainl {
     string("*").map{op => (lhs: Int, rhs: Int) => lhs * rhs} |
@@ -18,5 +18,6 @@ object Calculator extends SComb {
     println(expression("1+2*3"))
     println(expression("1+5*3/4"))
     println(expression("(1+5)*3/2"))
+    println(expression("(1-5)*3/2"))
   }
 }
