@@ -1,7 +1,7 @@
 package com.github.kmizu.scomb
 
 abstract class SComb {
-  sealed class ParseResult[+T]
+  sealed abstract class ParseResult[+T]
   case class ParseSuccess[+T](value: T, next: String) extends ParseResult[T]
   case object ParseFaiure extends ParseResult[Nothing]
 
