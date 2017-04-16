@@ -1,58 +1,71 @@
 package com.github.kmizu.scomb
 
-abstract class SComb {
-  sealed abstract class ParseResult[+T]
-  case class ParseSuccess[+T](value: T, next: String) extends ParseResult[T]
-  case object ParseFaiure extends ParseResult[Nothing]
-
-  type Parser[+T] = String => ParseResult[T]
-
-  def oneOf(seqs: Seq[Char]*): Parser[String] = input => {
-    if(input.length == 0 || !seqs.exists(seq => seq.exists(ch => ch == input.charAt(0)))) ParseFaiure
-    else ParseSuccess(input.substring(0, 1), input.substring(1))
+abstract class SComb[R] {
+  val input: String
+  def root: Parser[R]
+  def isEOF(index: Int): Boolean = index >= input.length
+  def current(index: Int): String = input.substring(index)
+  def parse: ParseResult[R] = root(0)
+  sealed abstract class ParseResult[+T] {
+    def index: Int
+  }
+  object ParseResult {
+    case class Success[+T](value: T, override val index: Int) extends ParseResult[T]
+    case class Failure(override val index: Int) extends ParseResult[Nothing]
+    case class Fatal(override val index: Int) extends ParseResult[Nothing]
   }
 
-  def string(literal: String): Parser[String] = input => {
-    if(input.startsWith(literal)) ParseSuccess(literal, input.substring(literal.length)) else ParseFaiure
+  type Parser[+T] = Int => ParseResult[T]
+
+  def oneOf(seqs: Seq[Char]*): Parser[String] = index => {
+    if(isEOF(index) || !seqs.exists(seq => seq.exists(ch => ch == current(index).charAt(0)))) ParseResult.Failure(index)
+    else ParseResult.Success(current(index).substring(0, 1), index + 1)
   }
 
-  def branch[A](cases: (Char, Parser[A])*): Parser[A] = input => {
-    if(input.length == 0) {
-      ParseFaiure
+  def string(literal: String): Parser[String] = index => {
+    if(current(index).startsWith(literal))
+      ParseResult.Success(literal, index + literal.length)
+    else
+      ParseResult.Failure(index)
+  }
+
+  def branch[A](cases: (Char, Parser[A])*): Parser[A] = index => {
+    if(isEOF(index)) {
+      ParseResult.Failure(index)
     } else {
-      val head = input.charAt(0)
+      val head = current(index).charAt(0)
       val map = Map(cases:_*)
       map.get(head) match {
-        case Some(clause) => clause(input)
-        case None => ParseFaiure
+        case Some(clause) => clause(index)
+        case None => ParseResult.Failure(index)
       }
     }
   }
 
   implicit class RichParser[T](val self: Parser[T]) {
-    def * : Parser[List[T]] = input => {
-      def repeat(input: String): (List[T], String) = self(input) match {
-        case ParseSuccess(value, next1) =>
+    def * : Parser[List[T]] = index => {
+      def repeat(index: Int): (List[T], Int) = self(index) match {
+        case ParseResult.Success(value, next1) =>
           val (result, next2) = repeat(next1)
           (value::result, next2)
-        case ParseFaiure =>
-          (Nil, input)
+        case ParseResult.Failure(next) =>
+          (Nil, next)
       }
-      val (result, next) = repeat(input)
-      ParseSuccess(result, next)
+      val (result, next) = repeat(index)
+      ParseResult.Success(result, next)
     }
 
-    def ~[U](right: Parser[U]) : Parser[(T, U)] = input => {
-      self(input) match {
-        case ParseSuccess(value1, next1) =>
+    def ~[U](right: Parser[U]) : Parser[(T, U)] = index => {
+      self(index) match {
+        case ParseResult.Success(value1, next1) =>
           right(next1) match {
-            case ParseSuccess(value2, next2) =>
-              ParseSuccess((value1, value2), next2)
-            case ParseFaiure =>
-              ParseFaiure
+            case ParseResult.Success(value2, next2) =>
+              ParseResult.Success((value1, value2), next2)
+            case failure@ParseResult.Failure(next) =>
+              failure
           }
-        case ParseFaiure =>
-          ParseFaiure
+        case failure@ParseResult.Failure(next) =>
+          failure
       }
     }
 
@@ -64,39 +77,40 @@ abstract class SComb {
       }
     }
 
-    def |(right: Parser[T]): Parser[T] = input => {
-      self(input) match {
-        case success@ParseSuccess(_, _) => success
-        case ParseFaiure => right(input)
+    def |(right: Parser[T]): Parser[T] = index => {
+      self(index) match {
+        case success@ParseResult.Success(_, _) => success
+        case ParseResult.Failure(_) => right(index)
       }
     }
 
-    def filter(predicate: T => Boolean): Parser[T] = input => {
-      self(input) match {
-        case ParseSuccess(value, next) =>
+    def filter(predicate: T => Boolean): Parser[T] = index => {
+      self(index) match {
+        case ParseResult.Success(value, next) =>
           if(predicate(value))
-            ParseSuccess(value, next)
+            ParseResult.Success(value, next)
           else
-            ParseFaiure
-        case ParseFaiure =>
-          ParseFaiure
+            ParseResult.Failure(index)
+        case failure@ParseResult.Failure(_) =>
+          failure
       }
     }
 
     def withFilter(predicate: T => Boolean): Parser[T] = filter(predicate)
 
-    def map[U](function: T => U): Parser[U] = input => {
-      self(input) match {
-        case ParseSuccess(value, next) => ParseSuccess(function(value), next)
-        case ParseFaiure => ParseFaiure
+    def map[U](function: T => U): Parser[U] = index => {
+      self(index) match {
+        case ParseResult.Success(value, next) => ParseResult.Success(function(value), next)
+        case failure@ParseResult.Failure(_) => failure
       }
     }
 
-    def flatMap[U](function: T => Parser[U]): Parser[U] = input => {
-      self(input) match {
-        case ParseSuccess(value, next) =>
+    def flatMap[U](function: T => Parser[U]): Parser[U] = index => {
+      self(index) match {
+        case ParseResult.Success(value, next) =>
           function(value)(next)
-        case ParseFaiure => ParseFaiure
+        case failure@ParseResult.Failure(_) =>
+          failure
       }
     }
   }
