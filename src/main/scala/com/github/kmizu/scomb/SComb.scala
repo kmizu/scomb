@@ -16,6 +16,19 @@ abstract class SComb {
     if(input.startsWith(literal)) ParseSuccess(literal, input.substring(literal.length)) else ParseFaiure
   }
 
+  def branch[A](cases: (Char, Parser[A])*): Parser[A] = input => {
+    if(input.length == 0) {
+      ParseFaiure
+    } else {
+      val head = input.charAt(0)
+      val map = Map(cases:_*)
+      map.get(head) match {
+        case Some(clause) => clause(input)
+        case None => ParseFaiure
+      }
+    }
+  }
+
   implicit class RichParser[T](val self: Parser[T]) {
     def * : Parser[List[T]] = input => {
       def repeat(input: String): (List[T], String) = self(input) match {
