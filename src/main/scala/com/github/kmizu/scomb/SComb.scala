@@ -11,33 +11,44 @@ abstract class SComb[R] {
   }
   object ParseResult {
     case class Success[+T](value: T, override val index: Int) extends ParseResult[T]
-    case class Failure(override val index: Int) extends ParseResult[Nothing]
+    case class Failure(message: String, override val index: Int) extends ParseResult[Nothing]
     case class Fatal(override val index: Int) extends ParseResult[Nothing]
   }
 
   type Parser[+T] = Int => ParseResult[T]
 
   def oneOf(seqs: Seq[Char]*): Parser[String] = index => {
-    if(isEOF(index) || !seqs.exists(seq => seq.exists(ch => ch == current(index).charAt(0)))) ParseResult.Failure(index)
+    if(isEOF(index) || !seqs.exists(seq => seq.exists(ch => ch == current(index).charAt(0))))
+      ParseResult.Failure(s"expected: ${seqs.mkString("[", ",", "]")}", index)
     else ParseResult.Success(current(index).substring(0, 1), index + 1)
   }
 
   def string(literal: String): Parser[String] = index => {
-    if(current(index).startsWith(literal))
+    if(isEOF(index)) {
+      ParseResult.Failure(s"expected: ${literal} actual: EOF", index)
+    } else if(current(index).startsWith(literal)) {
       ParseResult.Success(literal, index + literal.length)
-    else
-      ParseResult.Failure(index)
+    } else {
+      ParseResult.Failure(s"expected: ${literal} actual: ${current(index).substring(0, literal.length)}", index)
+    }
   }
 
   def branch[A](cases: (Char, Parser[A])*): Parser[A] = index => {
+    def newFailureMessage(head: Char, cases: Map[Char, Parser[A]]): String = {
+      val expectation = cases.map{ case (ch, _) => ch}.mkString("[", ",", "]")
+      s"expect: ${expectation} actual: ${head}"
+    }
+
     if(isEOF(index)) {
-      ParseResult.Failure(index)
+      val map: Map[Char, Parser[A]] = Map(cases :_*)
+      ParseResult.Failure(newFailureMessage(0, map), index)
     } else {
       val head = current(index).charAt(0)
       val map = Map(cases:_*)
       map.get(head) match {
         case Some(clause) => clause(index)
-        case None => ParseResult.Failure(index)
+        case None =>
+          ParseResult.Failure(newFailureMessage(head, map), index)
       }
     }
   }
@@ -48,7 +59,7 @@ abstract class SComb[R] {
         case ParseResult.Success(value, next1) =>
           val (result, next2) = repeat(next1)
           (value::result, next2)
-        case ParseResult.Failure(next) =>
+        case ParseResult.Failure(message, next) =>
           (Nil, next)
       }
       val (result, next) = repeat(index)
@@ -61,10 +72,10 @@ abstract class SComb[R] {
           right(next1) match {
             case ParseResult.Success(value2, next2) =>
               ParseResult.Success((value1, value2), next2)
-            case failure@ParseResult.Failure(next) =>
+            case failure@ParseResult.Failure(_, _) =>
               failure
           }
-        case failure@ParseResult.Failure(next) =>
+        case failure@ParseResult.Failure(message, next) =>
           failure
       }
     }
@@ -80,7 +91,7 @@ abstract class SComb[R] {
     def |(right: Parser[T]): Parser[T] = index => {
       self(index) match {
         case success@ParseResult.Success(_, _) => success
-        case ParseResult.Failure(_) => right(index)
+        case ParseResult.Failure(_, _) => right(index)
       }
     }
 
@@ -90,8 +101,8 @@ abstract class SComb[R] {
           if(predicate(value))
             ParseResult.Success(value, next)
           else
-            ParseResult.Failure(index)
-        case failure@ParseResult.Failure(_) =>
+            ParseResult.Failure("not matched to predicate", index)
+        case failure@ParseResult.Failure(_, _) =>
           failure
       }
     }
@@ -101,7 +112,7 @@ abstract class SComb[R] {
     def map[U](function: T => U): Parser[U] = index => {
       self(index) match {
         case ParseResult.Success(value, next) => ParseResult.Success(function(value), next)
-        case failure@ParseResult.Failure(_) => failure
+        case failure@ParseResult.Failure(_, _) => failure
       }
     }
 
@@ -109,7 +120,7 @@ abstract class SComb[R] {
       self(index) match {
         case ParseResult.Success(value, next) =>
           function(value)(next)
-        case failure@ParseResult.Failure(_) =>
+        case failure@ParseResult.Failure(_, _) =>
           failure
       }
     }
