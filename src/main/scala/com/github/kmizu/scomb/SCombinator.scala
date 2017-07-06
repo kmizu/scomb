@@ -5,7 +5,31 @@ abstract class SCombinator[R] {self =>
 
   protected var input: String = ""
 
-  protected var recent: Option[ParseResult.Failure] = None
+  protected var recent: Option[Failure] = None
+
+  lazy val spacing: Parser[String] = (
+    $(" ") | $("\t") | $("\b") | $("\f") | $("\r\n") | $("\r") | $("\n")
+  )
+
+  def token(symbol: String): Parser[String] = for {
+    s <- $(symbol)
+    _ <- spacing
+  } yield s
+
+  sealed abstract class ParseResult[+T] {
+    def index: Int
+  }
+  sealed abstract class ParseFailure extends ParseResult[Nothing]
+
+  case class Success[+T](value: T, override val index: Int) extends ParseResult[T]
+  case class Failure(message: String, override val index: Int) extends ParseFailure {
+    self.recent match {
+      case None => self.recent = Some(this)
+      case Some(failure) if index > failure.index => self.recent = Some(this)
+      case _ => // Do nothing
+    }
+  }
+  case class Fatal(message: String, override val index: Int) extends ParseFailure
 
   def root: Parser[R]
 
@@ -16,52 +40,37 @@ abstract class SCombinator[R] {self =>
   final def parse(input: String): ParseResult[R] = synchronized {
     this.input = input
     root(0) match {
-      case s@ParseResult.Success(_, _) => s
-      case f@ParseResult.Failure(_, _) => recent.get
-      case f@ParseResult.Fatal(_,  _) => f
+      case s@Success(_, _) => s
+      case f@Failure(_, _) => recent.get
+      case f@Fatal(_,  _) => f
     }
   }
 
   final def parseAll(input: String): ParseResult[R] = synchronized {
     parse(input) match {
-      case s@ParseResult.Success(_, i) =>
-        if(isEOF(i)) s else ParseResult.Failure("input remains: " + current(i), i)
+      case s@Success(_, i) =>
+        if(isEOF(i)) s else Failure("input remains: " + current(i), i)
       case otherwise => otherwise
     }
   }
 
-  sealed abstract class ParseResult[+T] {
-    def index: Int
-  }
-  sealed abstract class ParseFailure extends ParseResult[Nothing]
 
-  object ParseResult {
-    case class Success[+T](value: T, override val index: Int) extends ParseResult[T]
-    case class Failure(message: String, override val index: Int) extends ParseFailure {
-      self.recent match {
-        case None => self.recent = Some(this)
-        case Some(failure) if index > failure.index => self.recent = Some(this)
-        case _ => // Do nothing
-      }
-    }
-    case class Fatal(message: String, override val index: Int) extends ParseFailure
-  }
 
   type Parser[+T] = Int => ParseResult[T]
 
   def oneOf(seqs: Seq[Char]*): Parser[String] = index => {
     if(isEOF(index) || !seqs.exists(seq => seq.exists(ch => ch == current(index).charAt(0))))
-      ParseResult.Failure(s"expected: ${seqs.mkString("[", ",", "]")}", index)
-    else ParseResult.Success(current(index).substring(0, 1), index + 1)
+      Failure(s"expected: ${seqs.mkString("[", ",", "]")}", index)
+    else Success(current(index).substring(0, 1), index + 1)
   }
 
   def string(literal: String): Parser[String] = index => {
     if(isEOF(index)) {
-      ParseResult.Failure(s"expected: ${literal} actual: EOF", index)
+      Failure(s"expected: ${literal} actual: EOF", index)
     } else if(current(index).startsWith(literal)) {
-      ParseResult.Success(literal, index + literal.length)
+      Success(literal, index + literal.length)
     } else {
-      ParseResult.Failure(s"expected: ${literal} actual: ${current(index).substring(0, literal.length)}", index)
+      Failure(s"expected: ${literal} actual: ${current(index).substring(0, literal.length)}", index)
     }
   }
 
@@ -75,14 +84,14 @@ abstract class SCombinator[R] {self =>
 
     if(isEOF(index)) {
       val map: Map[Char, Parser[A]] = Map(cases :_*)
-      ParseResult.Failure(newFailureMessage(0, map), index)
+      Failure(newFailureMessage(0, map), index)
     } else {
       val head = current(index).charAt(0)
       val map = Map(cases:_*)
       map.get(head) match {
         case Some(clause) => clause(index)
         case None =>
-          ParseResult.Failure(newFailureMessage(head, map), index)
+          Failure(newFailureMessage(head, map), index)
       }
     }
   }
@@ -90,19 +99,19 @@ abstract class SCombinator[R] {self =>
   implicit class RichParser[T](val self: Parser[T]) {
     def * : Parser[List[T]] = index => {
       def repeat(index: Int): (List[T], Int) = self(index) match {
-        case ParseResult.Success(value, next1) =>
+        case Success(value, next1) =>
           val (result, next2) = repeat(next1)
           (value::result, next2)
-        case ParseResult.Failure(message, next) =>
+        case Failure(message, next) =>
           (Nil, next)
-        case ParseResult.Fatal(_, _) =>
+        case Fatal(_, _) =>
           (Nil, -1)
       }
       val (result, next) = repeat(index)
       if(next >= 0) {
-        ParseResult.Success(result, next)
+        Success(result, next)
       } else {
-        ParseResult.Fatal("fatal error", next)
+        Fatal("fatal error", next)
       }
     }
 
@@ -123,27 +132,27 @@ abstract class SCombinator[R] {self =>
 
     def ~[U](right: Parser[U]) : Parser[T ~ U] = index => {
       self(index) match {
-        case ParseResult.Success(value1, next1) =>
+        case Success(value1, next1) =>
           right(next1) match {
-            case ParseResult.Success(value2, next2) =>
-              ParseResult.Success(new ~(value1, value2), next2)
-            case failure@ParseResult.Failure(_, _) =>
+            case Success(value2, next2) =>
+              Success(new ~(value1, value2), next2)
+            case failure@Failure(_, _) =>
               failure
-            case fatal@ParseResult.Fatal(_, _) =>
+            case fatal@Fatal(_, _) =>
               fatal
           }
-        case failure@ParseResult.Failure(message, next) =>
+        case failure@Failure(message, next) =>
           failure
-        case fatal@ParseResult.Fatal(_, _) =>
+        case fatal@Fatal(_, _) =>
           fatal
       }
     }
 
     def ? : Parser[Option[T]] = index => {
       self(index) match {
-        case ParseResult.Success(v, i) => ParseResult.Success(Some(v), i)
-        case ParseResult.Failure(message, i) => ParseResult.Success(None, i)
-        case fatal@ParseResult.Fatal(_, _) => fatal
+        case Success(v, i) => Success(Some(v), i)
+        case Failure(message, i) => Success(None, i)
+        case fatal@Fatal(_, _) => fatal
       }
     }
 
@@ -157,22 +166,22 @@ abstract class SCombinator[R] {self =>
 
     def |(right: Parser[T]): Parser[T] = index => {
       self(index) match {
-        case success@ParseResult.Success(_, _) => success
-        case ParseResult.Failure(_, _) => right(index)
-        case fatal@ParseResult.Fatal(_, _) => fatal
+        case success@Success(_, _) => success
+        case Failure(_, _) => right(index)
+        case fatal@Fatal(_, _) => fatal
       }
     }
 
     def filter(predicate: T => Boolean): Parser[T] = index => {
       self(index) match {
-        case ParseResult.Success(value, next) =>
+        case Success(value, next) =>
           if(predicate(value))
-            ParseResult.Success(value, next)
+            Success(value, next)
           else
-            ParseResult.Failure("not matched to predicate", index)
-        case failure@ParseResult.Failure(_, _) =>
+            Failure("not matched to predicate", index)
+        case failure@Failure(_, _) =>
           failure
-        case fatal@ParseResult.Fatal(_, _) =>
+        case fatal@Fatal(_, _) =>
           fatal
       }
     }
@@ -181,9 +190,9 @@ abstract class SCombinator[R] {self =>
 
     def map[U](function: T => U): Parser[U] = index => {
       self(index) match {
-        case ParseResult.Success(value, next) => ParseResult.Success(function(value), next)
-        case failure@ParseResult.Failure(_, _) => failure
-        case fatal@ParseResult.Fatal(_, _) => fatal
+        case Success(value, next) => Success(function(value), next)
+        case failure@Failure(_, _) => failure
+        case fatal@Fatal(_, _) => fatal
       }
     }
 
@@ -191,11 +200,11 @@ abstract class SCombinator[R] {self =>
 
     def flatMap[U](function: T => Parser[U]): Parser[U] = index => {
       self(index) match {
-        case ParseResult.Success(value, next) =>
+        case Success(value, next) =>
           function(value)(next)
-        case failure@ParseResult.Failure(_, _) =>
+        case failure@Failure(_, _) =>
           failure
-        case fatal@ParseResult.Fatal(_, _) =>
+        case fatal@Fatal(_, _) =>
           fatal
       }
     }
