@@ -20,20 +20,22 @@ abstract class SCombinator[R] {self =>
     def index: Int
     def parsedValue: Option[T]
   }
-  sealed abstract class ParseFailure extends ParseResult[Nothing]
+  sealed abstract class ParseFailure extends ParseResult[Nothing] {
+    def message: String
+  }
 
   case class Success[+T](value: T, override val index: Int) extends ParseResult[T] {
     override def parsedValue: Option[T] = Some(value)
   }
-  case class Failure(message: String, override val index: Int) extends ParseFailure {
+  case class Failure(override val message: String, override val index: Int) extends ParseFailure {
     self.recent match {
       case None => self.recent = Some(this)
-      case Some(failure) if index > failure.index => self.recent = Some(this)
+      case Some(failure) if index >= failure.index => self.recent = Some(this)
       case _ => // Do nothing
     }
     override def parsedValue: Option[Nothing] = None
   }
-  case class Fatal(message: String, override val index: Int) extends ParseFailure {
+  case class Fatal(override val message: String, override val index: Int) extends ParseFailure {
     override def parsedValue: Option[Nothing] = None
   }
 
@@ -56,7 +58,7 @@ abstract class SCombinator[R] {self =>
   final def parseAll(input: String): ParseResult[R] = synchronized {
     parse(input) match {
       case s@Success(_, i) =>
-        if(isEOF(i)) s else Failure("input remains: " + current(i), i)
+        if(isEOF(i)) s else Failure("Input remains: " + current(i), i)
       case otherwise => otherwise
     }
   }
@@ -71,11 +73,11 @@ abstract class SCombinator[R] {self =>
 
   def string(literal: String): Parser[String] = index => {
     if(isEOF(index)) {
-      Failure(s"Expected: ${literal} Actual: EOF", index)
+      Failure(s"""Expected: "${literal}" Actual: EOF""", index)
     } else if(current(index).startsWith(literal)) {
       Success(literal, index + literal.length)
     } else {
-      Failure(s"Expected: ${literal}", index)
+      Failure(s"""Expected: "${literal}"""", index)
     }
   }
 
@@ -91,18 +93,18 @@ abstract class SCombinator[R] {self =>
 
   def except(char: Char): Parser[String] = index => {
     if(isEOF(index)) {
-      Failure(s"unexpected EOF", index)
+      Failure(s"Unexpected EOF", index)
     } else if(current(index).charAt(0) != char) {
       Success("" + current(index).charAt(0), index + 1)
     } else {
-      Failure(s"unexpected char: ${char}", index)
+      Failure(s"Unexpected character: ${char}", index)
     }
   }
 
   def predict[A](cases: (Char, Parser[A])*): Parser[A] = index => {
     def newFailureMessage(head: Char, cases: Map[Char, Parser[A]]): String = {
       val expectation = cases.map{ case (ch, _) => ch}.mkString("[", ",", "]")
-      s"expect: ${expectation} actual: ${head}"
+      s"Expect: ${expectation} Actual: ${head}"
     }
 
     if(isEOF(index)) {
@@ -205,7 +207,7 @@ abstract class SCombinator[R] {self =>
           if(predicate(value))
             Success(value, next)
           else
-            Failure("not matched to predicate", index)
+            Failure("Not matched to predicate", index)
         case failure@Failure(_, _) =>
           failure
         case fatal@Fatal(_, _) =>

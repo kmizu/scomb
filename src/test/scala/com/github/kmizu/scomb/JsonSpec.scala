@@ -133,4 +133,10 @@ class JsonSpec extends FunSpec with DiagrammedAssertions {
       assert(Some(JObject("x" -> JNumber(100), "y" -> JNumber(200))) == parseAll("{\"x\": 100, \"y\": 200}").parsedValue)
     }
   }
+
+  describe("JSONParser cannot parse somethings") {
+    it("object") {
+      assert("""Expected: "}" Actual: EOF""" == parseAll("{").asInstanceOf[ParseFailure].message)
+    }
+  }
 }
