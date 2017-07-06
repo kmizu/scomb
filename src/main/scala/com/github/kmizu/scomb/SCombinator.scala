@@ -7,29 +7,35 @@ abstract class SCombinator[R] {self =>
 
   protected var recent: Option[Failure] = None
 
-  lazy val spacing: Parser[String] = (
+  lazy val space: Parser[String] = (
     $(" ") | $("\t") | $("\b") | $("\f") | $("\r\n") | $("\r") | $("\n")
   )
 
   def token(symbol: String): Parser[String] = for {
     s <- $(symbol)
-    _ <- spacing.*
+    _ <- space.*
   } yield s
 
   sealed abstract class ParseResult[+T] {
     def index: Int
+    def parsedValue: Option[T]
   }
   sealed abstract class ParseFailure extends ParseResult[Nothing]
 
-  case class Success[+T](value: T, override val index: Int) extends ParseResult[T]
+  case class Success[+T](value: T, override val index: Int) extends ParseResult[T] {
+    override def parsedValue: Option[T] = Some(value)
+  }
   case class Failure(message: String, override val index: Int) extends ParseFailure {
     self.recent match {
       case None => self.recent = Some(this)
       case Some(failure) if index > failure.index => self.recent = Some(this)
       case _ => // Do nothing
     }
+    override def parsedValue: Option[Nothing] = None
   }
-  case class Fatal(message: String, override val index: Int) extends ParseFailure
+  case class Fatal(message: String, override val index: Int) extends ParseFailure {
+    override def parsedValue: Option[Nothing] = None
+  }
 
   def root: Parser[R]
 
@@ -39,6 +45,7 @@ abstract class SCombinator[R] {self =>
 
   final def parse(input: String): ParseResult[R] = synchronized {
     this.input = input
+    this.recent = None
     root(0) match {
       case s@Success(_, _) => s
       case f@Failure(_, _) => recent.get
@@ -54,27 +61,43 @@ abstract class SCombinator[R] {self =>
     }
   }
 
-
-
   type Parser[+T] = Int => ParseResult[T]
 
   def oneOf(seqs: Seq[Char]*): Parser[String] = index => {
     if(isEOF(index) || !seqs.exists(seq => seq.exists(ch => ch == current(index).charAt(0))))
-      Failure(s"expected: ${seqs.mkString("[", ",", "]")}", index)
+      Failure(s"Expected: ${seqs.mkString("[", ",", "]")}", index)
     else Success(current(index).substring(0, 1), index + 1)
   }
 
   def string(literal: String): Parser[String] = index => {
     if(isEOF(index)) {
-      Failure(s"expected: ${literal} actual: EOF", index)
+      Failure(s"Expected: ${literal} Actual: EOF", index)
     } else if(current(index).startsWith(literal)) {
       Success(literal, index + literal.length)
     } else {
-      Failure(s"expected: ${literal} actual: ${current(index).substring(0, literal.length)}", index)
+      Failure(s"Expected: ${literal}", index)
+    }
+  }
+
+  def any: Parser[Char] = index => {
+    if(isEOF(index)) {
+      Failure(s"Unexpected EOF", index)
+    } else {
+      Success(current(index).charAt(0), index + 1)
     }
   }
 
   def $(literal: String): Parser[String] = string(literal)
+
+  def except(char: Char): Parser[String] = index => {
+    if(isEOF(index)) {
+      Failure(s"unexpected EOF", index)
+    } else if(current(index).charAt(0) != char) {
+      Success("" + current(index).charAt(0), index + 1)
+    } else {
+      Failure(s"unexpected char: ${char}", index)
+    }
+  }
 
   def predict[A](cases: (Char, Parser[A])*): Parser[A] = index => {
     def newFailureMessage(head: Char, cases: Map[Char, Parser[A]]): String = {
@@ -113,6 +136,10 @@ abstract class SCombinator[R] {self =>
       } else {
         Fatal("fatal error", next)
       }
+    }
+
+    def + : Parser[List[T]] = self ~ self.* ^^ { case hd ~ tl =>
+      hd :: tl
     }
 
     def repeat1By(separator: Parser[Any]): Parser[List[T]] = {
@@ -164,7 +191,7 @@ abstract class SCombinator[R] {self =>
       }
     }
 
-    def |(right: Parser[T]): Parser[T] = index => {
+    def |[U >: T](right: Parser[T]): Parser[U] = index => {
       self(index) match {
         case success@Success(_, _) => success
         case Failure(_, _) => right(index)
