@@ -16,7 +16,7 @@ abstract class SCombinator[R] {self =>
   def parse: ParseResult[R] = root(0) match {
     case s@ParseResult.Success(_, _) => s
     case f@ParseResult.Failure(_, _) => recent.get
-    case f@ParseResult.Fatal( _) => f
+    case f@ParseResult.Fatal(_,  _) => f
   }
 
   def parseAll: ParseResult[R] = parse match {
@@ -39,7 +39,7 @@ abstract class SCombinator[R] {self =>
         case _ => // Do nothing
       }
     }
-    case class Fatal(override val index: Int) extends ParseFailure
+    case class Fatal(message: String, override val index: Int) extends ParseFailure
   }
 
   type Parser[+T] = Int => ParseResult[T]
@@ -90,14 +90,14 @@ abstract class SCombinator[R] {self =>
           (value::result, next2)
         case ParseResult.Failure(message, next) =>
           (Nil, next)
-        case ParseResult.Fatal(_) =>
+        case ParseResult.Fatal(_, _) =>
           (Nil, -1)
       }
       val (result, next) = repeat(index)
       if(next >= 0) {
         ParseResult.Success(result, next)
       } else {
-        ParseResult.Fatal(next)
+        ParseResult.Fatal("fatal error", next)
       }
     }
 
@@ -124,12 +124,12 @@ abstract class SCombinator[R] {self =>
               ParseResult.Success(new ~(value1, value2), next2)
             case failure@ParseResult.Failure(_, _) =>
               failure
-            case fatal@ParseResult.Fatal(_) =>
+            case fatal@ParseResult.Fatal(_, _) =>
               fatal
           }
         case failure@ParseResult.Failure(message, next) =>
           failure
-        case fatal@ParseResult.Fatal(_) =>
+        case fatal@ParseResult.Fatal(_, _) =>
           fatal
       }
     }
@@ -138,7 +138,7 @@ abstract class SCombinator[R] {self =>
       self(index) match {
         case ParseResult.Success(v, i) => ParseResult.Success(Some(v), i)
         case ParseResult.Failure(message, i) => ParseResult.Success(None, i)
-        case fatal@ParseResult.Fatal(_) => fatal
+        case fatal@ParseResult.Fatal(_, _) => fatal
       }
     }
 
@@ -154,7 +154,7 @@ abstract class SCombinator[R] {self =>
       self(index) match {
         case success@ParseResult.Success(_, _) => success
         case ParseResult.Failure(_, _) => right(index)
-        case fatal@ParseResult.Fatal(_) => fatal
+        case fatal@ParseResult.Fatal(_, _) => fatal
       }
     }
 
@@ -167,7 +167,7 @@ abstract class SCombinator[R] {self =>
             ParseResult.Failure("not matched to predicate", index)
         case failure@ParseResult.Failure(_, _) =>
           failure
-        case fatal@ParseResult.Fatal(_) =>
+        case fatal@ParseResult.Fatal(_, _) =>
           fatal
       }
     }
@@ -178,7 +178,7 @@ abstract class SCombinator[R] {self =>
       self(index) match {
         case ParseResult.Success(value, next) => ParseResult.Success(function(value), next)
         case failure@ParseResult.Failure(_, _) => failure
-        case fatal@ParseResult.Fatal(_) => fatal
+        case fatal@ParseResult.Fatal(_, _) => fatal
       }
     }
 
@@ -190,7 +190,7 @@ abstract class SCombinator[R] {self =>
           function(value)(next)
         case failure@ParseResult.Failure(_, _) =>
           failure
-        case fatal@ParseResult.Fatal(_) =>
+        case fatal@ParseResult.Fatal(_, _) =>
           fatal
       }
     }
