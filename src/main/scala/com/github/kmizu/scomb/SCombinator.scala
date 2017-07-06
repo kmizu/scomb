@@ -2,10 +2,15 @@ package com.github.kmizu.scomb
 
 abstract class SCombinator[R] {self =>
   case class ~[A, B](a: A, b: B)
+
   val input: String
+
   def root: Parser[R]
+
   def isEOF(index: Int): Boolean = index >= input.length
+
   def current(index: Int): String = input.substring(index)
+
   var recent: Option[ParseResult.Failure] = None
 
   def parse: ParseResult[R] = root(0) match {
@@ -23,16 +28,18 @@ abstract class SCombinator[R] {self =>
   sealed abstract class ParseResult[+T] {
     def index: Int
   }
+  sealed abstract class ParseFailure extends ParseResult[Nothing]
+
   object ParseResult {
     case class Success[+T](value: T, override val index: Int) extends ParseResult[T]
-    case class Failure(message: String, override val index: Int) extends ParseResult[Nothing] {
+    case class Failure(message: String, override val index: Int) extends ParseFailure {
       self.recent match {
         case None => self.recent = Some(this)
         case Some(failure) if index > failure.index => self.recent = Some(this)
         case _ => // Do nothing
       }
     }
-    case class Fatal(override val index: Int) extends ParseResult[Nothing]
+    case class Fatal(override val index: Int) extends ParseFailure
   }
 
   type Parser[+T] = Int => ParseResult[T]
