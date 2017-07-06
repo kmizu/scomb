@@ -22,9 +22,9 @@ object Calculator {
   def apply(input: String): Calculator = new Calculator(input)
 
   def main(args: Array[String]): Unit = {
-    println(Calculator("1+2*3").parse)
-    println(Calculator("1+5*3/4").parse)
-    println(Calculator("(1+5)*3/2").parse)
-    println(Calculator("(1-5)*3/2").parse)
+    println(Calculator("1+2*3").parseAll)
+    println(Calculator("1+5*3/4").parseAll)
+    println(Calculator("(1+5)*3/2").parseAll)
+    println(Calculator("(1-5) *3/2").parseAll)
   }
 }

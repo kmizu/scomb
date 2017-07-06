@@ -1,17 +1,36 @@
 package com.github.kmizu.scomb
 
-abstract class SComb[R] {
+abstract class SComb[R] {self =>
   val input: String
   def root: Parser[R]
   def isEOF(index: Int): Boolean = index >= input.length
   def current(index: Int): String = input.substring(index)
-  def parse: ParseResult[R] = root(0)
+  var recent: Option[ParseResult.Failure] = None
+
+  def parse: ParseResult[R] = root(0) match {
+    case s@ParseResult.Success(_, _) => s
+    case f@ParseResult.Failure(_, _) => recent.get
+    case f@ParseResult.Fatal( _) => f
+  }
+
+  def parseAll: ParseResult[R] = parse match {
+    case s@ParseResult.Success(_, i) =>
+      if(isEOF(i)) s else ParseResult.Failure("input remains: " + current(i), i)
+    case otherwise => otherwise
+  }
+
   sealed abstract class ParseResult[+T] {
     def index: Int
   }
   object ParseResult {
     case class Success[+T](value: T, override val index: Int) extends ParseResult[T]
-    case class Failure(message: String, override val index: Int) extends ParseResult[Nothing]
+    case class Failure(message: String, override val index: Int) extends ParseResult[Nothing] {
+      self.recent match {
+        case None => self.recent = Some(this)
+        case Some(failure) if index > failure.index => self.recent = Some(this)
+        case _ => // Do nothing
+      }
+    }
     case class Fatal(override val index: Int) extends ParseResult[Nothing]
   }
 
