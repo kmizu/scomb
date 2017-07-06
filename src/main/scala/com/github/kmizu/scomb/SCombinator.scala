@@ -3,7 +3,9 @@ package com.github.kmizu.scomb
 abstract class SCombinator[R] {self =>
   case class ~[A, B](a: A, b: B)
 
-  val input: String
+  protected var input: String = ""
+
+  protected var recent: Option[ParseResult.Failure] = None
 
   def root: Parser[R]
 
@@ -11,18 +13,21 @@ abstract class SCombinator[R] {self =>
 
   def current(index: Int): String = input.substring(index)
 
-  var recent: Option[ParseResult.Failure] = None
-
-  def parse: ParseResult[R] = root(0) match {
-    case s@ParseResult.Success(_, _) => s
-    case f@ParseResult.Failure(_, _) => recent.get
-    case f@ParseResult.Fatal(_,  _) => f
+  final def parse(input: String): ParseResult[R] = synchronized {
+    this.input = input
+    root(0) match {
+      case s@ParseResult.Success(_, _) => s
+      case f@ParseResult.Failure(_, _) => recent.get
+      case f@ParseResult.Fatal(_,  _) => f
+    }
   }
 
-  def parseAll: ParseResult[R] = parse match {
-    case s@ParseResult.Success(_, i) =>
-      if(isEOF(i)) s else ParseResult.Failure("input remains: " + current(i), i)
-    case otherwise => otherwise
+  final def parseAll(input: String): ParseResult[R] = synchronized {
+    parse(input) match {
+      case s@ParseResult.Success(_, i) =>
+        if(isEOF(i)) s else ParseResult.Failure("input remains: " + current(i), i)
+      case otherwise => otherwise
+    }
   }
 
   sealed abstract class ParseResult[+T] {
