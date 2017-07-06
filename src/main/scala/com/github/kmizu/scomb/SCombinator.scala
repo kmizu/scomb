@@ -1,6 +1,6 @@
 package com.github.kmizu.scomb
 
-abstract class SComb[R] {self =>
+abstract class SCombinator[R] {self =>
   case class ~[A, B](a: A, b: B)
   val input: String
   def root: Parser[R]

@@ -2,7 +2,7 @@ package com.github.kmizu.scomb
 
 import jdk.nashorn.internal.codegen.CompilerConstants.Call
 
-class Calculator(override val input: String) extends SComb[Int] {
+class Calculator(override val input: String) extends SCombinator[Int] {
   def root: Parser[Int] = expression
   def expression: Parser[Int] = A
   def A: Parser[Int] = M.chainl {
