@@ -13,7 +13,7 @@ abstract class SCombinator[R] {self =>
 
   def token(symbol: String): Parser[String] = for {
     s <- $(symbol)
-    _ <- spacing
+    _ <- spacing.*
   } yield s
 
   sealed abstract class ParseResult[+T] {
