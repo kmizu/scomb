@@ -53,6 +53,8 @@ abstract class SComb[R] {self =>
     }
   }
 
+  def $(literal: String): Parser[String] = string(literal)
+
   def predict[A](cases: (Char, Parser[A])*): Parser[A] = index => {
     def newFailureMessage(head: Char, cases: Map[Char, Parser[A]]): String = {
       val expectation = cases.map{ case (ch, _) => ch}.mkString("[", ",", "]")
