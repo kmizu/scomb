@@ -1,6 +1,7 @@
 package com.github.kmizu.scomb
 
 abstract class SComb[R] {self =>
+  case class ~[A, B](a: A, b: B)
   val input: String
   def root: Parser[R]
   def isEOF(index: Int): Boolean = index >= input.length
@@ -80,28 +81,61 @@ abstract class SComb[R] {self =>
           (value::result, next2)
         case ParseResult.Failure(message, next) =>
           (Nil, next)
+        case ParseResult.Fatal(_) =>
+          (Nil, -1)
       }
       val (result, next) = repeat(index)
-      ParseResult.Success(result, next)
+      if(next >= 0) {
+        ParseResult.Success(result, next)
+      } else {
+        ParseResult.Fatal(next)
+      }
     }
 
-    def ~[U](right: Parser[U]) : Parser[(T, U)] = index => {
+    def repeat1By(separator: Parser[Any]): Parser[List[T]] = {
+      self ~ (separator ~ self).* ^^ { case b ~ bs =>
+          bs.foldLeft(b::Nil) { case (bs, _ ~ b) =>
+              b::bs
+          }.reverse
+      }
+    }
+
+    def repeat0By(separator: Parser[Any]): Parser[List[T]] = {
+      self.repeat1By(separator).? ^^ {
+        case None => Nil
+        case Some(list) => list
+      }
+    }
+
+    def ~[U](right: Parser[U]) : Parser[T ~ U] = index => {
       self(index) match {
         case ParseResult.Success(value1, next1) =>
           right(next1) match {
             case ParseResult.Success(value2, next2) =>
-              ParseResult.Success((value1, value2), next2)
+              ParseResult.Success(new ~(value1, value2), next2)
             case failure@ParseResult.Failure(_, _) =>
               failure
+            case fatal@ParseResult.Fatal(_) =>
+              fatal
           }
         case failure@ParseResult.Failure(message, next) =>
           failure
+        case fatal@ParseResult.Fatal(_) =>
+          fatal
+      }
+    }
+
+    def ? : Parser[Option[T]] = index => {
+      self(index) match {
+        case ParseResult.Success(v, i) => ParseResult.Success(Some(v), i)
+        case ParseResult.Failure(message, i) => ParseResult.Success(None, i)
+        case fatal@ParseResult.Fatal(_) => fatal
       }
     }
 
     def chainl(q: Parser[(T, T) => T]): Parser[T] = {
-      (self ~ (q ~ self).*).map { case (x, xs) =>
-          xs.foldLeft(x) { case (a, (f, b)) =>
+      (self ~ (q ~ self).*).map { case x ~ xs =>
+          xs.foldLeft(x) { case (a, f ~ b) =>
               f(a, b)
           }
       }
@@ -111,6 +145,7 @@ abstract class SComb[R] {self =>
       self(index) match {
         case success@ParseResult.Success(_, _) => success
         case ParseResult.Failure(_, _) => right(index)
+        case fatal@ParseResult.Fatal(_) => fatal
       }
     }
 
@@ -123,6 +158,8 @@ abstract class SComb[R] {self =>
             ParseResult.Failure("not matched to predicate", index)
         case failure@ParseResult.Failure(_, _) =>
           failure
+        case fatal@ParseResult.Fatal(_) =>
+          fatal
       }
     }
 
@@ -132,8 +169,11 @@ abstract class SComb[R] {self =>
       self(index) match {
         case ParseResult.Success(value, next) => ParseResult.Success(function(value), next)
         case failure@ParseResult.Failure(_, _) => failure
+        case fatal@ParseResult.Fatal(_) => fatal
       }
     }
+
+    def ^^[U](function: T => U): Parser[U] = map(function)
 
     def flatMap[U](function: T => Parser[U]): Parser[U] = index => {
       self(index) match {
@@ -141,6 +181,8 @@ abstract class SComb[R] {self =>
           function(value)(next)
         case failure@ParseResult.Failure(_, _) =>
           failure
+        case fatal@ParseResult.Fatal(_) =>
+          fatal
       }
     }
   }
