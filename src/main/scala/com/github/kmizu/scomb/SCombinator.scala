@@ -1,6 +1,7 @@
 package com.github.kmizu.scomb
 
 import scala.collection.mutable
+import scala.util.matching.Regex
 
 abstract class SCombinator[R] {self =>
   case class ~[+A, +B](a: A, b: B)
@@ -24,6 +25,7 @@ abstract class SCombinator[R] {self =>
     def index: Int
     def value: Option[T]
   }
+
   sealed abstract class ParseFailure extends ParseResult[Nothing] {
     def message: String
   }
@@ -31,6 +33,7 @@ abstract class SCombinator[R] {self =>
   case class Success[+T](semanticValue: T, override val index: Int) extends ParseResult[T] {
     override def value: Option[T] = Some(semanticValue)
   }
+
   case class Failure(override val message: String, override val index: Int) extends ParseFailure {
     self.recent match {
       case None => self.recent = Some(this)
@@ -39,6 +42,7 @@ abstract class SCombinator[R] {self =>
     }
     override def value: Option[Nothing] = None
   }
+
   case class Fatal(override val message: String, override val index: Int) extends ParseFailure {
     override def value: Option[Nothing] = None
   }
@@ -117,13 +121,32 @@ abstract class SCombinator[R] {self =>
     }
   }
 
-  def oneOf(seqs: Seq[Char]*): Parser[String] = index => {
+  final def oneOf(seqs: Seq[Char]*): Parser[String] = parserOf{index =>
     if(isEOF(index) || !seqs.exists(seq => seq.exists(ch => ch == current(index).charAt(0))))
       Failure(s"Expected:${seqs.mkString("[", ",", "]")}", index)
     else Success(current(index).substring(0, 1), index + 1)
   }
 
-  def string(literal: String): Parser[String] = index => {
+  final def regularExpression(literal: Regex): Parser[String] = parserOf{index =>
+    if(isEOF(index)) {
+      Failure(s"""Expected:"${literal}" Actual:EOF""", index)
+    } else {
+      val substring = current(index)
+      literal.findPrefixOf(substring) match {
+        case Some(prefix) => Success(substring.substring(prefix.length), index + prefix.length)
+        case None => Failure(s"""Expected:"${literal}"""", index)
+      }
+    }
+  }
+
+  /**
+    * It is just shorthand of `regularExpression` method.
+    * @param literal
+    * @return
+    */
+  final def r(literal: Regex): Parser[String] = regularExpression(literal)
+
+  final def string(literal: String): Parser[String] = parserOf{index =>
     if(isEOF(index)) {
       Failure(s"""Expected:"${literal}" Actual:EOF""", index)
     } else if(current(index).startsWith(literal)) {
@@ -133,7 +156,7 @@ abstract class SCombinator[R] {self =>
     }
   }
 
-  def any: Parser[Char] = index => {
+  final def any: Parser[Char] = parserOf{index =>
     if(isEOF(index)) {
       Failure(s"Unexpected EOF", index)
     } else {
@@ -141,9 +164,9 @@ abstract class SCombinator[R] {self =>
     }
   }
 
-  def $(literal: String): Parser[String] = string(literal)
+  final def $(literal: String): Parser[String] = string(literal)
 
-  def except(char: Char): Parser[String] = index => {
+  final def except(char: Char): Parser[String] = parserOf{index =>
     if(isEOF(index)) {
       Failure(s"Unexpected EOF", index)
     } else if(current(index).charAt(0) != char) {
@@ -153,7 +176,7 @@ abstract class SCombinator[R] {self =>
     }
   }
 
-  def predict[A](cases: (Char, Parser[A])*): Parser[A] = index => {
+  final def predict[A](cases: (Char, Parser[A])*): Parser[A] = parserOf{index =>
     def newFailureMessage(head: Char, cases: Map[Char, Parser[A]]): String = {
       val expectation = cases.map{ case (ch, _) => ch}.mkString("[", ",", "]")
       s"Expect:${expectation} Actual:${head}"
