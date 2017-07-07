@@ -1,7 +1,7 @@
 package com.github.kmizu.scomb
 
 abstract class SCombinator[R] {self =>
-  case class ~[A, B](a: A, b: B)
+  case class ~[+A, +B](a: A, b: B)
 
   protected var input: String = ""
 
@@ -63,8 +63,6 @@ abstract class SCombinator[R] {self =>
     }
   }
 
-  type Parser[+T] = Int => ParseResult[T]
-
   def oneOf(seqs: Seq[Char]*): Parser[String] = index => {
     if(isEOF(index) || !seqs.exists(seq => seq.exists(ch => ch == current(index).charAt(0))))
       Failure(s"Expected: ${seqs.mkString("[", ",", "]")}", index)
@@ -121,9 +119,11 @@ abstract class SCombinator[R] {self =>
     }
   }
 
-  implicit class RichParser[T](val self: Parser[T]) {
-    def * : Parser[List[T]] = index => {
-      def repeat(index: Int): (List[T], Int) = self(index) match {
+  abstract class Parser[+T] extends (Int => ParseResult[T]) {
+    def apply(index: Int): ParseResult[T]
+
+    def * : Parser[List[T]] = parserOf{index =>
+      def repeat(index: Int): (List[T], Int) = this(index) match {
         case Success(value, next1) =>
           val (result, next2) = repeat(next1)
           (value::result, next2)
@@ -140,12 +140,12 @@ abstract class SCombinator[R] {self =>
       }
     }
 
-    def + : Parser[List[T]] = self ~ self.* ^^ { case hd ~ tl =>
+    def + : Parser[List[T]] = this ~ this.* ^^ { case hd ~ tl =>
       hd :: tl
     }
 
     def repeat1By(separator: Parser[Any]): Parser[List[T]] = {
-      self ~ (separator ~ self).* ^^ { case b ~ bs =>
+      this ~ (separator ~ this).* ^^ { case b ~ bs =>
           bs.foldLeft(b::Nil) { case (bs, _ ~ b) =>
               b::bs
           }.reverse
@@ -153,14 +153,14 @@ abstract class SCombinator[R] {self =>
     }
 
     def repeat0By(separator: Parser[Any]): Parser[List[T]] = {
-      self.repeat1By(separator).? ^^ {
+      this.repeat1By(separator).? ^^ {
         case None => Nil
         case Some(list) => list
       }
     }
 
-    def ~[U](right: Parser[U]) : Parser[T ~ U] = index => {
-      self(index) match {
+    def ~[U](right: Parser[U]) : Parser[T ~ U] = parserOf{index =>
+      this(index) match {
         case Success(value1, next1) =>
           right(next1) match {
             case Success(value2, next2) =>
@@ -177,32 +177,24 @@ abstract class SCombinator[R] {self =>
       }
     }
 
-    def ? : Parser[Option[T]] = index => {
-      self(index) match {
+    def ? : Parser[Option[T]] = parserOf{index =>
+      this(index) match {
         case Success(v, i) => Success(Some(v), i)
         case Failure(message, i) => Success(None, i)
         case fatal@Fatal(_, _) => fatal
       }
     }
 
-    def chainl(q: Parser[(T, T) => T]): Parser[T] = {
-      (self ~ (q ~ self).*).map { case x ~ xs =>
-          xs.foldLeft(x) { case (a, f ~ b) =>
-              f(a, b)
-          }
-      }
-    }
-
-    def |[U >: T](right: Parser[T]): Parser[U] = index => {
-      self(index) match {
+    def |[U >: T](right: Parser[U]): Parser[U] = parserOf{index =>
+      this(index) match {
         case success@Success(_, _) => success
         case Failure(_, _) => right(index)
         case fatal@Fatal(_, _) => fatal
       }
     }
 
-    def filter(predicate: T => Boolean): Parser[T] = index => {
-      self(index) match {
+    def filter(predicate: T => Boolean): Parser[T] = parserOf{index =>
+      this(index) match {
         case Success(value, next) =>
           if(predicate(value))
             Success(value, next)
@@ -217,8 +209,8 @@ abstract class SCombinator[R] {self =>
 
     def withFilter(predicate: T => Boolean): Parser[T] = filter(predicate)
 
-    def map[U](function: T => U): Parser[U] = index => {
-      self(index) match {
+    def map[U](function: T => U): Parser[U] = parserOf{index =>
+      this(index) match {
         case Success(value, next) => Success(function(value), next)
         case failure@Failure(_, _) => failure
         case fatal@Fatal(_, _) => fatal
@@ -227,15 +219,27 @@ abstract class SCombinator[R] {self =>
 
     def ^^[U](function: T => U): Parser[U] = map(function)
 
-    def flatMap[U](function: T => Parser[U]): Parser[U] = index => {
-      self(index) match {
+    def flatMap[U](function: T => Parser[U]): Parser[U] = parserOf{index =>
+      this(index) match {
         case Success(value, next) =>
-          function(value)(next)
+          function.apply(value).apply(next)
         case failure@Failure(_, _) =>
           failure
         case fatal@Fatal(_, _) =>
           fatal
       }
     }
+  }
+
+  def chainl[T](p: Parser[T])(q: Parser[(T, T) => T]): Parser[T] = {
+    (p ~ (q ~ p).*).map { case x ~ xs =>
+      xs.foldLeft(x) { case (a, f ~ b) =>
+        f(a, b)
+      }
+    }
+  }
+
+  def parserOf[T](function: Int => ParseResult[T]): Parser[T] = new Parser[T] {
+    override def apply(index: Int): ParseResult[T] = function(index)
   }
 }

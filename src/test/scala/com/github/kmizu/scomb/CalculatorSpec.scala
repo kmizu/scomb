@@ -6,11 +6,11 @@ class CalculatorSpec extends FunSpec with DiagrammedAssertions {
   object Calculator extends SCombinator[Int] {
     def root: Parser[Int] = expression
     def expression: Parser[Int] = A
-    def A: Parser[Int] = M.chainl {
+    def A: Parser[Int] = chainl(M) {
       $("+").map{op => (lhs: Int, rhs: Int) => lhs + rhs} |
         $("-").map{op => (lhs: Int, rhs: Int) => lhs - rhs}
     }
-    def M: Parser[Int] = P.chainl {
+    def M: Parser[Int] = chainl(P) {
       $("*").map{op => (lhs: Int, rhs: Int) => lhs * rhs} |
         $("/").map{op => (lhs: Int, rhs: Int) => lhs / rhs}
     }
