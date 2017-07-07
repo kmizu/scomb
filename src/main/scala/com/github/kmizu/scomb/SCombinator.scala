@@ -229,6 +229,16 @@ abstract class SCombinator[R] {self =>
       }
     }
 
+    def >>[U](rhs: Parser[U]): Parser[U] = for {
+      _ <- this
+      u <- rhs
+    } yield u
+
+    def <<[U](rhs: Parser[U]): Parser[T] = for {
+      t <- this
+      _ <- rhs
+    } yield t
+
     def + : Parser[List[T]] = this ~ this.* ^^ { case hd ~ tl =>
       hd :: tl
     }
