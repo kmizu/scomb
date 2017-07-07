@@ -122,15 +122,16 @@ class JsonSpec extends FunSpec with DiagrammedAssertions {
   }
 
   describe("JSONParser can parse complex values") {
-    it("array") {
-      assert(Some(JArray()) == parseAll("[]").parsedValue)
-      assert(Some(JArray(JArray())) == parseAll("[[]]").parsedValue)
-      assert(Some(JArray(JNumber(1), JNumber(2), JNumber(3))) == parseAll("[1, 2, 3]").parsedValue)
-    }
     it("object") {
       assert(Some(JObject()) == parseAll("{}").parsedValue)
       assert(Some(JObject("k" -> JObject())) == parseAll("{\"k\":{}}").parsedValue)
       assert(Some(JObject("x" -> JNumber(100), "y" -> JNumber(200))) == parseAll("{\"x\": 100, \"y\": 200}").parsedValue)
+    }
+    it("array") {
+      assert(Some(JArray()) == parseAll("[]").parsedValue)
+      assert(Some(JArray(JArray())) == parseAll("[[]]").parsedValue)
+      assert(Some(JArray(JNumber(1), JNumber(2), JNumber(3))) == parseAll("[1, 2, 3]").parsedValue)
+      assert(Some(JArray(JObject())) == parseAll("[{}]").parsedValue)
     }
   }
 
