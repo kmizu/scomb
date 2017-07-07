@@ -10,6 +10,8 @@ abstract class SCombinator[R] {self =>
 
   protected var recent: Option[Failure] = None
 
+  protected var fatal: Option[Fatal] = None
+
   protected val locations: mutable.Map[Int, Location] = mutable.Map[Int, Location]()
 
   lazy val space: Parser[String] = (
@@ -170,8 +172,8 @@ abstract class SCombinator[R] {self =>
 
   final def not(parser: Parser[Any]): Parser[Any] = parserOf{index =>
     parser(index) match {
-      case Success(_, index) => Failure("Not Expected", index)
-      case Failure(_, index) => Success("", index)
+      case Success(_, _) => Failure("Not Expected", index)
+      case Failure(_, _) => Success("", index)
       case f@Fatal(_, _) => f
     }
   }
@@ -212,20 +214,22 @@ abstract class SCombinator[R] {self =>
     def apply(index: Int): ParseResult[T]
 
     def * : Parser[List[T]] = parserOf{index =>
-      def repeat(index: Int): (List[T], Int) = this(index) match {
+      def repeat(index: Int): ParseResult[List[T]] = this(index) match {
         case Success(value, next1) =>
-          val (result, next2) = repeat(next1)
-          (value::result, next2)
+          repeat(next1) match {
+            case Success(result, next2) =>
+              Success(value::result, next2)
+            case r@Fatal(_, _) => r
+            case r => throw new RuntimeException("cannot be " + r)
+          }
         case Failure(message, next) =>
-          (Nil, next)
-        case Fatal(_, _) =>
-          (Nil, -1)
+          Success(Nil, next)
+        case f@Fatal(_, _) =>
+          f
       }
-      val (result, next) = repeat(index)
-      if(next >= 0) {
-        Success(result, next)
-      } else {
-        Fatal("fatal error", next)
+      repeat(index) match {
+        case r@Success(_, _) => r
+        case r:ParseFailure => r
       }
     }
 
@@ -255,6 +259,14 @@ abstract class SCombinator[R] {self =>
       this.repeat1By(separator).? ^^ {
         case None => Nil
         case Some(list) => list
+      }
+    }
+
+    def append(message: String): Parser[T] = parserOf{index =>
+      this(index) match {
+        case r@Success(_, _) => r
+        case Failure(_, index) => Failure(message, index)
+        case Fatal(_, index) => Fatal(message, index)
       }
     }
 
@@ -303,6 +315,14 @@ abstract class SCombinator[R] {self =>
           failure
         case fatal@Fatal(_, _) =>
           fatal
+      }
+    }
+
+    def fatal(message: String): Parser[T] = parserOf{index =>
+      this(index) match {
+        case r@Success(_, _) => r
+        case Failure(_, index) => Fatal(message, index)
+        case r@Fatal(_, _) => r
       }
     }
 
