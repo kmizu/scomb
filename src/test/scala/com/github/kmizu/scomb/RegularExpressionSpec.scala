@@ -15,13 +15,19 @@ class RegularExpressionSpec extends FunSpec with DiagrammedAssertions {
     def alternative: Parser[Regexp] = chainl(sequencable) {
       $("|").map{op => (lhs: Regexp, rhs: Regexp) => Choice(lhs, rhs) }
     }
-    def sequencable: Parser[Regexp] = chainl(P) {
+    def sequencable: Parser[Regexp] = chainl(repeatable) {
       $("").map{op => (lhs: Regexp, rhs: Regexp) => Sequence(lhs, rhs) }
     }
-    def P: Parser[Regexp] = (for {
+    def repeatable: Parser[Regexp] = {
+      primary ~ $("*").? ^^ {
+        case e ~ Some(_) => Repeat(e)
+        case e ~ None => e
+      }
+    }
+    def primary: Parser[Regexp] = (for {
       _ <- string("("); e <- expression; _ <- string(")") } yield e) | character
     def character: Parser[Regexp] = (for {
-      _ <- not(oneOf(Seq('\\', '|', '(', ')')))
+      _ <- not(oneOf(Seq('\\', '|', '(', ')', '*')))
       ch <- any
     } yield Value(ch)) | (for {
       _ <- $("\\")
@@ -45,6 +51,8 @@ class RegularExpressionSpec extends FunSpec with DiagrammedAssertions {
       assert(parseAll(input) == Result.Success(Choice(Value('1'), Value('9'))))
       input = "(1|9)0"
       assert(parseAll(input) == Result.Success(Sequence(Choice(Value('1'), Value('9')), Value('0'))))
+      input = "(1|9)*"
+      assert(parseAll(input) == Result.Success(Repeat(Choice(Value('1'), Value('9')))))
     }
   }
 }
