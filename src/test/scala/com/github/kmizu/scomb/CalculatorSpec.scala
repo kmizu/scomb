@@ -20,9 +20,9 @@ class CalculatorSpec extends FunSpec with DiagrammedAssertions {
   }
   import Calculator._
 
-  describe("Parsing mathematical expressions") {
+  describe("A Calculator") {
     var input = ""
-    it("succeeds") {
+    it("should parse correct expressions") {
       input = "1+2*3"
       assert(parseAll(input) == Result.Success(7))
       input = "1+5*3/4"
@@ -30,7 +30,7 @@ class CalculatorSpec extends FunSpec with DiagrammedAssertions {
       input = "(1+5)*3/2"
       assert(parseAll(input) == Result.Success(9))
     }
-    it("fails") {
+    it("cannot parse incorret expressions") {
       input = "(1-5) *3/2"
       val failure = parseAll(input).asInstanceOf[Result.Failure]
       assert(Location(1, 6) == failure.location)

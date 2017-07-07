@@ -121,13 +121,13 @@ class JsonSpec extends FunSpec with DiagrammedAssertions {
     }
   }
 
-  describe("JSONParser can parse complex values") {
-    it("object") {
+  describe("A JsonParser") {
+    it("should parse an object") {
       assert(Some(JObject()) == parseAll("{}").value)
       assert(Some(JObject("k" -> JObject())) == parseAll("{\"k\":{}}").value)
       assert(Some(JObject("x" -> JNumber(100), "y" -> JNumber(200))) == parseAll("{\"x\": 100, \"y\": 200}").value)
     }
-    it("array") {
+    it("should parse an array") {
       assert(Some(JArray()) == parseAll("[]").value)
       assert(Some(JArray(JArray())) == parseAll("[[]]").value)
       assert(Some(JArray(JNumber(1), JNumber(2), JNumber(3))) == parseAll("[1, 2, 3]").value)
@@ -135,8 +135,8 @@ class JsonSpec extends FunSpec with DiagrammedAssertions {
     }
   }
 
-  describe("JSONParser cannot parse somethings") {
-    it("object") {
+  describe("The JsonParser") {
+    it("cannot parse incorrect object") {
       val failure = parseAll("{").asInstanceOf[Result.Failure]
       assert(Location(1, 2) == failure.location)
       assert("""Expected:"}" Actual:EOF""" == failure.message)
