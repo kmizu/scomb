@@ -23,19 +23,281 @@ abstract class SCombinator[R] {self =>
     _ <- space.*
   } yield s
 
+  /**
+    * A Parser is used to parse the input from the outer class instances.
+    * It returns the result of type T as the ParseResult.
+    * @tparam T the result type
+    */
+  abstract class Parser[+T] extends (Int => ParseResult[T]) {
+
+    /**
+      * Parses input from the start index
+      * @param index the start index
+      * @return the parse result, which type is T
+      */
+    def apply(index: Int): ParseResult[T]
+
+    /**
+      * Returns a Parser that represents repetition (0 or more)
+      */
+    def * : Parser[List[T]] = parserOf{index =>
+      def repeat(index: Int): ParseResult[List[T]] = this(index) match {
+        case Success(value, next1) =>
+          repeat(next1) match {
+            case Success(result, next2) =>
+              Success(value::result, next2)
+            case r@Fatal(_, _) => r
+            case r => throw new RuntimeException("cannot be " + r)
+          }
+        case Failure(message, next) =>
+          Success(Nil, next)
+        case f@Fatal(_, _) =>
+          f
+      }
+      repeat(index) match {
+        case r@Success(_, _) => r
+        case r:ParseFailure => r
+      }
+    }
+
+    /**
+      * Returns a Parser that represents repetition (1 or more).
+      * It is same as
+      * <pre>
+      *   (this ~ this.*).map { case hd ~ tl => hd :: tl }
+      * </pre>
+      * @return
+      */
+    def + : Parser[List[T]] = this ~ this.* ^^ { case hd ~ tl =>
+      hd :: tl
+    }
+
+    /**
+      * Returns a sequential Parser consists of <code>this</code> and <code>rhs</code>.
+      * Note that the result of <code>this</code> is ignored.
+      * It is same as
+      * <pre>
+      *   for {
+      *     _ <- this
+      *     u <- rhs
+      *   } yield u
+      * </pre>
+      */
+    def >>[U](rhs: Parser[U]): Parser[U] = for {
+      _ <- this
+      u <- rhs
+    } yield u
+
+    /**
+      * Returns a sequential Parser consists of <code>this</code> and <code>rhs</code>.
+      * Note that the result of <code>rhs</code> is ignored.
+      * It is same as
+      * <pre>
+      *   for {
+      *     t <- this
+      *     _ <- rhs
+      *   } yield t
+      * </pre>
+      */
+    def <<[U](rhs: Parser[U]): Parser[T] = for {
+      t <- this
+      _ <- rhs
+    } yield t
+
+    /**
+      * Returns a repetition Parser (0 or more), which separator is
+      * <code>separator</code>
+      * @param separator this parses separator, which result is ignored
+      * @return
+      */
+    def repeat0By(separator: Parser[Any]): Parser[List[T]] = {
+      this.repeat1By(separator).? ^^ {
+        case None => Nil
+        case Some(list) => list
+      }
+    }
+
+    /**
+      * Returns a repetition Parser (1 or more), which separator is
+      * <code>separator</code>
+      * @param separator this parses separator, which result is ignored
+      * @return
+      */
+    def repeat1By(separator: Parser[Any]): Parser[List[T]] = {
+      this ~ (separator ~ this).* ^^ { case b ~ bs =>
+        bs.foldLeft(b::Nil) { case (bs, _ ~ b) =>
+          b::bs
+        }.reverse
+      }
+    }
+
+    /**
+      * Return the same parser except it replace the failure
+      * message with <code>message</code>
+      * @param message
+      * @return
+      */
+    def replace(message: String): Parser[T] = parserOf{ index =>
+      this(index) match {
+        case r@Success(_, _) => r
+        case Failure(_, index) => Failure(message, index)
+        case Fatal(_, index) => Fatal(message, index)
+      }
+    }
+
+    /**
+      * Returns a sequential Parser consists of <code>this</code> and <code>rhs</code>.
+      */
+    def ~[U](right: Parser[U]) : Parser[T ~ U] = parserOf{index =>
+      this(index) match {
+        case Success(value1, next1) =>
+          right(next1) match {
+            case Success(value2, next2) =>
+              Success(new ~(value1, value2), next2)
+            case failure@Failure(_, _) =>
+              failure
+            case fatal@Fatal(_, _) =>
+              fatal
+          }
+        case failure@Failure(message, next) =>
+          failure
+        case fatal@Fatal(_, _) =>
+          fatal
+      }
+    }
+
+    /**
+      * Returns a repetition Parser (0 or 1)
+      */
+    def ? : Parser[Option[T]] = parserOf{index =>
+      this(index) match {
+        case Success(v, i) => Success(Some(v), i)
+        case Failure(message, i) => Success(None, i)
+        case fatal@Fatal(_, _) => fatal
+      }
+    }
+
+    /**
+      * Returns a alternation Parser.
+      * It first trys <code>this</code>.
+      * It trys <code>rhs</code> iff <code>this</code> failed.
+      * @param rhs the alternation
+      * @tparam U the result type of <code>rhs</code>
+      * @return
+      */
+    def |[U >: T](rhs: Parser[U]): Parser[U] = parserOf{index =>
+      this(index) match {
+        case success@Success(_, _) => success
+        case Failure(_, _) => rhs(index)
+        case fatal@Fatal(_, _) => fatal
+      }
+    }
+
+    /**
+      * Returns a Parser
+      * which only succeeds iff <code>predicate(result)</code> is <code>true</code>.
+      * @param message the error message in that <code>predicate(result)</code> is <code>false</code>
+      */
+    def filter(
+      predicate: T => Boolean,
+      message: String = "Not Matched to predicate"): Parser[T] = parserOf{index =>
+      this(index) match {
+        case Success(value, next) =>
+          if(predicate(value))
+            Success(value, next)
+          else
+            Failure(message, index)
+        case failure@Failure(_, _) =>
+          failure
+        case fatal@Fatal(_, _) =>
+          fatal
+      }
+    }
+
+    /**
+      * Replace the failed parser with a fatal parser.
+      * It is used to suppress backtracks.
+      * @param message the error message
+      */
+    def fatal(message: String): Parser[T] = parserOf{index =>
+      this(index) match {
+        case r@Success(_, _) => r
+        case Failure(_, index) => Fatal(message, index)
+        case r@Fatal(_, _) => r
+      }
+    }
+
+    /**
+      * It is same as <code>filter</code>
+      */
+    def withFilter(predicate: T => Boolean): Parser[T] = filter(predicate)
+
+    /**
+      * Returns a parser that the result is converted from <code>T</code> to <code>U</code>
+      * @param function the result converter
+      */
+    def map[U](function: T => U): Parser[U] = parserOf{index =>
+      this(index) match {
+        case Success(value, next) => Success(function(value), next)
+        case failure@Failure(_, _) => failure
+        case fatal@Fatal(_, _) => fatal
+      }
+    }
+
+    /**
+      * It is same as <code>map</code>
+      */
+    def ^^[U](function: T => U): Parser[U] = map(function)
+
+    def flatMap[U](function: T => Parser[U]): Parser[U] = parserOf{index =>
+      this(index) match {
+        case Success(value, next) =>
+          function.apply(value).apply(next)
+        case failure@Failure(_, _) =>
+          failure
+        case fatal@Fatal(_, _) =>
+          fatal
+      }
+    }
+  }
+
+  /**
+    * An alias of Parser[T].
+    * @tparam T a type parameter of Parser
+    */
+  type P[+T] = Parser[T]
+
+  /**
+    * An ADT that represent the parse result.
+    * @tparam T the type of value
+    */
   sealed abstract class ParseResult[+T] {
     def index: Int
     def value: Option[T]
   }
 
+  /**
+    * An ADT that represent the parse result in the case that the parser failed.
+    */
   sealed abstract class ParseFailure extends ParseResult[Nothing] {
     def message: String
   }
 
+  /**
+    * A data constructor in the case parser succeed.
+    * @param semanticValue the semantic value
+    * @param index the next index
+    * @tparam T the type of value
+    */
   case class Success[+T](semanticValue: T, override val index: Int) extends ParseResult[T] {
     override def value: Option[T] = Some(semanticValue)
   }
 
+  /**
+    * A data constructor in the case parser failed. It can be recovered by <code>|</code> operator
+    * @param message the error message
+    * @param index the next index
+    */
   case class Failure(override val message: String, override val index: Int) extends ParseFailure {
     self.recent match {
       case None => self.recent = Some(this)
@@ -45,17 +307,29 @@ abstract class SCombinator[R] {self =>
     override def value: Option[Nothing] = None
   }
 
+  /**
+    * A data constructor in the case parser failed. It must not be recovered.
+    * @param message the error message
+    * @param index the next index
+    */
   case class Fatal(override val message: String, override val index: Int) extends ParseFailure {
     override def value: Option[Nothing] = None
   }
 
+  /**
+    * The first nonterminal.  The parsing starts from the Parser that this method returns.
+    */
   def root: Parser[R]
 
-  final def isEOF(index: Int): Boolean = index >= input.length
+  protected final def isEOF(index: Int): Boolean = index >= input.length
 
-  final def current(index: Int): String = input.substring(index)
+  protected final def current(index: Int): String = input.substring(index)
 
-  final def calculateLocations(): Unit = {
+  /**
+    * Calculate all the lines and columns correspond with indexed.
+    * This is called from <code>parse</code> method.
+    */
+  protected final def calculateLocations(): Unit = {
     var i: Int = 0
     var line: Int = 1
     var column: Int = 1
@@ -146,9 +420,7 @@ abstract class SCombinator[R] {self =>
   }
 
   /**
-    * It is just shorthand of `regularExpression` method.
-    * @param literal
-    * @return
+    * It is same as <code>regularExpression</code> method.
     */
   final def r(literal: Regex): Parser[String] = regularExpression(literal)
 
@@ -178,6 +450,9 @@ abstract class SCombinator[R] {self =>
     }
   }
 
+  /**
+    * It is same as <code>string</code> method.
+    */
   final def $(literal: String): Parser[String] = string(literal)
 
   final def except(char: Char): Parser[String] = parserOf{index =>
@@ -210,145 +485,7 @@ abstract class SCombinator[R] {self =>
     }
   }
 
-  abstract class Parser[+T] extends (Int => ParseResult[T]) {
-    def apply(index: Int): ParseResult[T]
 
-    def * : Parser[List[T]] = parserOf{index =>
-      def repeat(index: Int): ParseResult[List[T]] = this(index) match {
-        case Success(value, next1) =>
-          repeat(next1) match {
-            case Success(result, next2) =>
-              Success(value::result, next2)
-            case r@Fatal(_, _) => r
-            case r => throw new RuntimeException("cannot be " + r)
-          }
-        case Failure(message, next) =>
-          Success(Nil, next)
-        case f@Fatal(_, _) =>
-          f
-      }
-      repeat(index) match {
-        case r@Success(_, _) => r
-        case r:ParseFailure => r
-      }
-    }
-
-    def >>[U](rhs: Parser[U]): Parser[U] = for {
-      _ <- this
-      u <- rhs
-    } yield u
-
-    def <<[U](rhs: Parser[U]): Parser[T] = for {
-      t <- this
-      _ <- rhs
-    } yield t
-
-    def + : Parser[List[T]] = this ~ this.* ^^ { case hd ~ tl =>
-      hd :: tl
-    }
-
-    def repeat1By(separator: Parser[Any]): Parser[List[T]] = {
-      this ~ (separator ~ this).* ^^ { case b ~ bs =>
-          bs.foldLeft(b::Nil) { case (bs, _ ~ b) =>
-              b::bs
-          }.reverse
-      }
-    }
-
-    def repeat0By(separator: Parser[Any]): Parser[List[T]] = {
-      this.repeat1By(separator).? ^^ {
-        case None => Nil
-        case Some(list) => list
-      }
-    }
-
-    def append(message: String): Parser[T] = parserOf{index =>
-      this(index) match {
-        case r@Success(_, _) => r
-        case Failure(_, index) => Failure(message, index)
-        case Fatal(_, index) => Fatal(message, index)
-      }
-    }
-
-    def ~[U](right: Parser[U]) : Parser[T ~ U] = parserOf{index =>
-      this(index) match {
-        case Success(value1, next1) =>
-          right(next1) match {
-            case Success(value2, next2) =>
-              Success(new ~(value1, value2), next2)
-            case failure@Failure(_, _) =>
-              failure
-            case fatal@Fatal(_, _) =>
-              fatal
-          }
-        case failure@Failure(message, next) =>
-          failure
-        case fatal@Fatal(_, _) =>
-          fatal
-      }
-    }
-
-    def ? : Parser[Option[T]] = parserOf{index =>
-      this(index) match {
-        case Success(v, i) => Success(Some(v), i)
-        case Failure(message, i) => Success(None, i)
-        case fatal@Fatal(_, _) => fatal
-      }
-    }
-
-    def |[U >: T](right: Parser[U]): Parser[U] = parserOf{index =>
-      this(index) match {
-        case success@Success(_, _) => success
-        case Failure(_, _) => right(index)
-        case fatal@Fatal(_, _) => fatal
-      }
-    }
-
-    def filter(predicate: T => Boolean): Parser[T] = parserOf{index =>
-      this(index) match {
-        case Success(value, next) =>
-          if(predicate(value))
-            Success(value, next)
-          else
-            Failure("Not matched to predicate", index)
-        case failure@Failure(_, _) =>
-          failure
-        case fatal@Fatal(_, _) =>
-          fatal
-      }
-    }
-
-    def fatal(message: String): Parser[T] = parserOf{index =>
-      this(index) match {
-        case r@Success(_, _) => r
-        case Failure(_, index) => Fatal(message, index)
-        case r@Fatal(_, _) => r
-      }
-    }
-
-    def withFilter(predicate: T => Boolean): Parser[T] = filter(predicate)
-
-    def map[U](function: T => U): Parser[U] = parserOf{index =>
-      this(index) match {
-        case Success(value, next) => Success(function(value), next)
-        case failure@Failure(_, _) => failure
-        case fatal@Fatal(_, _) => fatal
-      }
-    }
-
-    def ^^[U](function: T => U): Parser[U] = map(function)
-
-    def flatMap[U](function: T => Parser[U]): Parser[U] = parserOf{index =>
-      this(index) match {
-        case Success(value, next) =>
-          function.apply(value).apply(next)
-        case failure@Failure(_, _) =>
-          failure
-        case fatal@Fatal(_, _) =>
-          fatal
-      }
-    }
-  }
 
   def chainl[T](p: Parser[T])(q: Parser[(T, T) => T]): Parser[T] = {
     (p ~ (q ~ p).*).map { case x ~ xs =>
