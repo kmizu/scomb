@@ -36,17 +36,25 @@ class RegularExpressionSpec extends FunSpec with DiagrammedAssertions {
   }
   import RegularExpressionParser._
 
-  describe("Parsing regular expressions") {
+  describe("A regular expression parser") {
     var input = ""
-    it("succeeds") {
+    it("should parse one character") {
       input = "0"
       assert(parseAll(input) == Result.Success(Value('0')))
       input = "1"
       assert(parseAll(input) == Result.Success(Value('1')))
       input = "9"
       assert(parseAll(input) == Result.Success(Value('9')))
+    }
+    it("should parser multiple characters") {
       input = "19"
       assert(parseAll(input) == Result.Success(Sequence(Value('1'), Value('9'))))
+      input = "ab"
+      assert(parseAll(input) == Result.Success(Sequence(Value('a'), Value('b'))))
+      input = "abc"
+      assert(parseAll(input) == Result.Success(Sequence(Sequence(Value('a'), Value('b')), Value('c'))))
+    }
+    it("should parse more complex expressions") {
       input = "1|9"
       assert(parseAll(input) == Result.Success(Choice(Value('1'), Value('9'))))
       input = "(1|9)0"
