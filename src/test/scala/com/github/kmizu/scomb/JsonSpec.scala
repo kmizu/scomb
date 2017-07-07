@@ -137,7 +137,7 @@ class JsonSpec extends FunSpec with DiagrammedAssertions {
 
   describe("JSONParser cannot parse somethings") {
     it("object") {
-      val failure = parseAll("{").asInstanceOf[FParseResult.Failure]
+      val failure = parseAll("{").asInstanceOf[Result.Failure]
       assert(Location(1, 2) == failure.location)
       assert("""Expected:"}" Actual:EOF""" == failure.message)
     }

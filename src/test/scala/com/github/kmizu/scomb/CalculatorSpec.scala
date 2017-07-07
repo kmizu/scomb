@@ -24,15 +24,15 @@ class CalculatorSpec extends FunSpec with DiagrammedAssertions {
     var input = ""
     it("succeeds") {
       input = "1+2*3"
-      assert(parseAll(input) == FParseResult.Success(7))
+      assert(parseAll(input) == Result.Success(7))
       input = "1+5*3/4"
-      assert(parseAll(input) == FParseResult.Success(4))
+      assert(parseAll(input) == Result.Success(4))
       input = "(1+5)*3/2"
-      assert(parseAll(input) == FParseResult.Success(9))
+      assert(parseAll(input) == Result.Success(9))
     }
     it("fails") {
       input = "(1-5) *3/2"
-      val failure = parseAll(input).asInstanceOf[FParseResult.Failure]
+      val failure = parseAll(input).asInstanceOf[Result.Failure]
       assert(Location(1, 6) == failure.location)
       assert("Unconsumed Input: *3/2" == failure.message)
     }

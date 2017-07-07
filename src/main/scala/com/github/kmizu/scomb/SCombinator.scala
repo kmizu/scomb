@@ -106,18 +106,18 @@ abstract class SCombinator[R] {self =>
     }
   }
 
-  final def parseAll(input: String): FParseResult[R] = synchronized {
+  final def parseAll(input: String): Result[R] = synchronized {
     parse(input) match {
       case Success(value, i) =>
         if(isEOF(i)) {
-          FParseResult.Success(value)
+          Result.Success(value)
         } else {
-          FParseResult.Failure(locations(i), "Unconsumed Input:" + current(i))
+          Result.Failure(locations(i), "Unconsumed Input:" + current(i))
         }
       case Failure(message, index) =>
-        FParseResult.Failure(locations(index), message)
+        Result.Failure(locations(index), message)
       case Fatal(message, index) =>
-        FParseResult.Failure(locations(index), message)
+        Result.Failure(locations(index), message)
     }
   }
 
