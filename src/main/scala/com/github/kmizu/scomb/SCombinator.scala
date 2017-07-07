@@ -18,14 +18,14 @@ abstract class SCombinator[R] {self =>
 
   sealed abstract class ParseResult[+T] {
     def index: Int
-    def parsedValue: Option[T]
+    def value: Option[T]
   }
   sealed abstract class ParseFailure extends ParseResult[Nothing] {
     def message: String
   }
 
-  case class Success[+T](value: T, override val index: Int) extends ParseResult[T] {
-    override def parsedValue: Option[T] = Some(value)
+  case class Success[+T](semanticValue: T, override val index: Int) extends ParseResult[T] {
+    override def value: Option[T] = Some(semanticValue)
   }
   case class Failure(override val message: String, override val index: Int) extends ParseFailure {
     self.recent match {
@@ -33,10 +33,10 @@ abstract class SCombinator[R] {self =>
       case Some(failure) if index >= failure.index => self.recent = Some(this)
       case _ => // Do nothing
     }
-    override def parsedValue: Option[Nothing] = None
+    override def value: Option[Nothing] = None
   }
   case class Fatal(override val message: String, override val index: Int) extends ParseFailure {
-    override def parsedValue: Option[Nothing] = None
+    override def value: Option[Nothing] = None
   }
 
   def root: Parser[R]

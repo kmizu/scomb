@@ -85,53 +85,53 @@ class JsonSpec extends FunSpec with DiagrammedAssertions {
 
   describe("JSONParser can parse basic values") {
     it("null") {
-      assert(Some(JNull) == parseAll("null").parsedValue)
-      assert(Some(JNull) == parseAll(" null").parsedValue)
-      assert(Some(JNull) == parseAll(" null ").parsedValue)
-      assert(Some(JNull) == parseAll("null  ").parsedValue)
-      assert(Some(JNull) == parseAll("  null").parsedValue)
+      assert(Some(JNull) == parseAll("null").value)
+      assert(Some(JNull) == parseAll(" null").value)
+      assert(Some(JNull) == parseAll(" null ").value)
+      assert(Some(JNull) == parseAll("null  ").value)
+      assert(Some(JNull) == parseAll("  null").value)
     }
     it("boolean") {
-      assert(Some(JBoolean(true)) == parseAll("true").parsedValue)
-      assert(Some(JBoolean(false)) == parseAll("false").parsedValue)
-      assert(Some(JBoolean(true)) == parseAll("true ").parsedValue)
-      assert(Some(JBoolean(true)) == parseAll(" true").parsedValue)
-      assert(Some(JBoolean(true)) == parseAll(" true ").parsedValue)
-      assert(Some(JBoolean(false)) == parseAll("false ").parsedValue)
-      assert(Some(JBoolean(false)) == parseAll(" false").parsedValue)
-      assert(Some(JBoolean(false)) == parseAll(" false ").parsedValue)
+      assert(Some(JBoolean(true)) == parseAll("true").value)
+      assert(Some(JBoolean(false)) == parseAll("false").value)
+      assert(Some(JBoolean(true)) == parseAll("true ").value)
+      assert(Some(JBoolean(true)) == parseAll(" true").value)
+      assert(Some(JBoolean(true)) == parseAll(" true ").value)
+      assert(Some(JBoolean(false)) == parseAll("false ").value)
+      assert(Some(JBoolean(false)) == parseAll(" false").value)
+      assert(Some(JBoolean(false)) == parseAll(" false ").value)
     }
     it("number") {
-      assert(Some(JNumber(0)) == parseAll("0").parsedValue)
-      assert(Some(JNumber(0)) == parseAll(" 0").parsedValue)
-      assert(Some(JNumber(0)) == parseAll("0 ").parsedValue)
-      assert(Some(JNumber(0)) == parseAll(" 0 ").parsedValue)
-      assert(Some(JNumber(200)) == parseAll("200").parsedValue)
-      assert(Some(JNumber(200)) == parseAll(" 200").parsedValue)
-      assert(Some(JNumber(200)) == parseAll("200 ").parsedValue)
-      assert(Some(JNumber(200)) == parseAll(" 200 ").parsedValue)
-      assert(Some(JNumber(300)) == parseAll("300").parsedValue)
-      assert(Some(JNumber(300)) == parseAll(" 300").parsedValue)
-      assert(Some(JNumber(300)) == parseAll("300 ").parsedValue)
-      assert(Some(JNumber(300)) == parseAll(" 300 ").parsedValue)
+      assert(Some(JNumber(0)) == parseAll("0").value)
+      assert(Some(JNumber(0)) == parseAll(" 0").value)
+      assert(Some(JNumber(0)) == parseAll("0 ").value)
+      assert(Some(JNumber(0)) == parseAll(" 0 ").value)
+      assert(Some(JNumber(200)) == parseAll("200").value)
+      assert(Some(JNumber(200)) == parseAll(" 200").value)
+      assert(Some(JNumber(200)) == parseAll("200 ").value)
+      assert(Some(JNumber(200)) == parseAll(" 200 ").value)
+      assert(Some(JNumber(300)) == parseAll("300").value)
+      assert(Some(JNumber(300)) == parseAll(" 300").value)
+      assert(Some(JNumber(300)) == parseAll("300 ").value)
+      assert(Some(JNumber(300)) == parseAll(" 300 ").value)
     }
 
     it("string") {
-      assert(Some(JString("")) == parseAll("\"\"").parsedValue)
+      assert(Some(JString("")) == parseAll("\"\"").value)
     }
   }
 
   describe("JSONParser can parse complex values") {
     it("object") {
-      assert(Some(JObject()) == parseAll("{}").parsedValue)
-      assert(Some(JObject("k" -> JObject())) == parseAll("{\"k\":{}}").parsedValue)
-      assert(Some(JObject("x" -> JNumber(100), "y" -> JNumber(200))) == parseAll("{\"x\": 100, \"y\": 200}").parsedValue)
+      assert(Some(JObject()) == parseAll("{}").value)
+      assert(Some(JObject("k" -> JObject())) == parseAll("{\"k\":{}}").value)
+      assert(Some(JObject("x" -> JNumber(100), "y" -> JNumber(200))) == parseAll("{\"x\": 100, \"y\": 200}").value)
     }
     it("array") {
-      assert(Some(JArray()) == parseAll("[]").parsedValue)
-      assert(Some(JArray(JArray())) == parseAll("[[]]").parsedValue)
-      assert(Some(JArray(JNumber(1), JNumber(2), JNumber(3))) == parseAll("[1, 2, 3]").parsedValue)
-      assert(Some(JArray(JObject())) == parseAll("[{}]").parsedValue)
+      assert(Some(JArray()) == parseAll("[]").value)
+      assert(Some(JArray(JArray())) == parseAll("[[]]").value)
+      assert(Some(JArray(JNumber(1), JNumber(2), JNumber(3))) == parseAll("[1, 2, 3]").value)
+      assert(Some(JArray(JObject())) == parseAll("[{}]").value)
     }
   }
 
