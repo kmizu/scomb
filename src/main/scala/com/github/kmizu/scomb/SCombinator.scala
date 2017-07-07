@@ -121,6 +121,10 @@ abstract class SCombinator[R] {self =>
     }
   }
 
+  def % : Parser[Location] = parserOf{index =>
+    Success(locations(index), index)
+  }
+
   final def oneOf(seqs: Seq[Char]*): Parser[String] = parserOf{index =>
     if(isEOF(index) || !seqs.exists(seq => seq.exists(ch => ch == current(index).charAt(0))))
       Failure(s"Expected:${seqs.mkString("[", ",", "]")}", index)
