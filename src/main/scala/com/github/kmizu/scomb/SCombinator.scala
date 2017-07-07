@@ -168,6 +168,14 @@ abstract class SCombinator[R] {self =>
     }
   }
 
+  final def not(parser: Parser[Any]): Parser[Any] = parserOf{index =>
+    parser(index) match {
+      case Success(_, index) => Failure("Not Expected", index)
+      case Failure(_, index) => Success("", index)
+      case f@Fatal(_, _) => f
+    }
+  }
+
   final def $(literal: String): Parser[String] = string(literal)
 
   final def except(char: Char): Parser[String] = parserOf{index =>
