@@ -1,11 +1,15 @@
 package com.github.kmizu.scomb
 
+import scala.collection.mutable
+
 abstract class SCombinator[R] {self =>
   case class ~[+A, +B](a: A, b: B)
 
   protected var input: String = ""
 
   protected var recent: Option[Failure] = None
+
+  protected val locations: mutable.Map[Int, Location] = mutable.Map[Int, Location]()
 
   lazy val space: Parser[String] = (
     $(" ") | $("\t") | $("\b") | $("\f") | $("\r\n") | $("\r") | $("\n")
@@ -41,13 +45,56 @@ abstract class SCombinator[R] {self =>
 
   def root: Parser[R]
 
-  def isEOF(index: Int): Boolean = index >= input.length
+  final def isEOF(index: Int): Boolean = index >= input.length
 
-  def current(index: Int): String = input.substring(index)
+  final def current(index: Int): String = input.substring(index)
+
+  final def calculateLocations(): Unit = {
+    var i: Int = 0
+    var line: Int = 1
+    var column: Int = 1
+    val chars = input.toCharArray
+    while(i < chars.length) {
+      val ch = chars(i)
+      ch match {
+        case '\n' =>
+          locations(i) = Location(line, column)
+          line += 1
+          column = 1
+          i += 1
+        case '\r' =>
+          if(i == chars.length - 1) {
+            locations(i) = Location(line, column)
+            line += 1
+            column = 1
+            i += 1
+          } else {
+            locations(i) = Location(line, column)
+            if(chars(i + 1) == '\n') {
+              locations(i + 1) = Location(line, column + 1)
+              line += 1
+              column = 1
+              i += 2
+            } else {
+              line += 1
+              column = 1
+              i += 1
+            }
+          }
+        case _ =>
+          locations(i) = Location(line, column)
+          column += 1
+          i += 1
+      }
+    }
+    locations(i) = Location(line, column)
+  }
 
   final def parse(input: String): ParseResult[R] = synchronized {
     this.input = input
     this.recent = None
+    this.locations.clear()
+    calculateLocations()
     root(0) match {
       case s@Success(_, _) => s
       case f@Failure(_, _) => recent.get
@@ -55,27 +102,34 @@ abstract class SCombinator[R] {self =>
     }
   }
 
-  final def parseAll(input: String): ParseResult[R] = synchronized {
+  final def parseAll(input: String): FParseResult[R] = synchronized {
     parse(input) match {
-      case s@Success(_, i) =>
-        if(isEOF(i)) s else Failure("Input remains: " + current(i), i)
-      case otherwise => otherwise
+      case Success(value, i) =>
+        if(isEOF(i)) {
+          FParseResult.Success(value)
+        } else {
+          FParseResult.Failure(locations(i), "Unconsumed Input:" + current(i))
+        }
+      case Failure(message, index) =>
+        FParseResult.Failure(locations(index), message)
+      case Fatal(message, index) =>
+        FParseResult.Failure(locations(index), message)
     }
   }
 
   def oneOf(seqs: Seq[Char]*): Parser[String] = index => {
     if(isEOF(index) || !seqs.exists(seq => seq.exists(ch => ch == current(index).charAt(0))))
-      Failure(s"Expected: ${seqs.mkString("[", ",", "]")}", index)
+      Failure(s"Expected:${seqs.mkString("[", ",", "]")}", index)
     else Success(current(index).substring(0, 1), index + 1)
   }
 
   def string(literal: String): Parser[String] = index => {
     if(isEOF(index)) {
-      Failure(s"""Expected: "${literal}" Actual: EOF""", index)
+      Failure(s"""Expected:"${literal}" Actual:EOF""", index)
     } else if(current(index).startsWith(literal)) {
       Success(literal, index + literal.length)
     } else {
-      Failure(s"""Expected: "${literal}"""", index)
+      Failure(s"""Expected:"${literal}"""", index)
     }
   }
 
@@ -95,14 +149,14 @@ abstract class SCombinator[R] {self =>
     } else if(current(index).charAt(0) != char) {
       Success("" + current(index).charAt(0), index + 1)
     } else {
-      Failure(s"Unexpected character: ${char}", index)
+      Failure(s"Unexpected Character:${char}", index)
     }
   }
 
   def predict[A](cases: (Char, Parser[A])*): Parser[A] = index => {
     def newFailureMessage(head: Char, cases: Map[Char, Parser[A]]): String = {
       val expectation = cases.map{ case (ch, _) => ch}.mkString("[", ",", "]")
-      s"Expect: ${expectation} Actual: ${head}"
+      s"Expect:${expectation} Actual:${head}"
     }
 
     if(isEOF(index)) {
