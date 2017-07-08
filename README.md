@@ -2,7 +2,7 @@
  
 [![Build Status](https://travis-ci.org/kmizu/scomb.png?branch=master)](https://travis-ci.org/kmizu/scomb)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.kmizu/scomb_2.12/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.kmizu/scomb_2.12)
-[![Scaladoc](http://javadoc-badge.appspot.com/com.github.kmizu/scomb_2.12.svg?label=scaladoc)](http://javadoc-badge.appspot.com/com.github.kmizu/scomb_2.12/index.html#com.github.kmizu.scomb.package)
+[![Scaladoc](http://javadoc-badge.appspot.com/com.github.kmizu/scomb_2.12.svg?label=scaladoc)](http://javadoc-badge.appspot.com/com.github.kmizu/scomb_2.12/com/github/kmizu/scomb/index.html)
 [![Reference Status](https://www.versioneye.com/java/com.github.kmizu:scomb_2.11/reference_badge.svg?style=flat)](https://www.versioneye.com/java/com.github.kmizu:scomb_2.12/references)
 
 SComb (su-ko-n-bu) is a simple but powerful parser combinator library written in Scala.
@@ -33,4 +33,4 @@ Add the following line to your `build.sbt`
 libraryDependencies += "com.github.kmizu" %% "scomb" % "0.1"
 ```
 
-See [Scaladoc](http://javadoc-badge.appspot.com/com.github.kmizu/scomb_2.12/index.html#com.github.kmizu.scomb.package)
+See [Scaladoc](http://javadoc-badge.appspot.com/com.github.kmizu/scomb_2.12/com/github/kmizu/scomb/index.html)
