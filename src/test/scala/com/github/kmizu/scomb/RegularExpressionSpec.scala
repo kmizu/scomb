@@ -27,7 +27,7 @@ class RegularExpressionSpec extends FunSpec with DiagrammedAssertions {
     def primary: Parser[Regexp] = (for {
       _ <- string("("); e <- expression; _ <- string(")") } yield e) | character
     def character: Parser[Regexp] = (for {
-      _ <- not(oneOf(Seq('\\', '|', '(', ')', '*')))
+      _ <- not(set(Seq('\\', '|', '(', ')', '*')))
       ch <- any
     } yield Value(ch)) | (for {
       _ <- $("\\")

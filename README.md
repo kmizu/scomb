@@ -43,7 +43,7 @@ import com.github.kmizu.scomb.SCombinator
 
 object IntegerParser extends SCombinator[Int] {
   override def root: P[Int] = (digit.*).map{ case digits => digits.mkString.toInt }
-  lazy val digit: P[String] = oneOf('0'to'9')
+  lazy val digit: P[String] = set('0'to'9')
   
   def main(args: Array[String]): Unit = {
     assert(parse("100") == Success(100))
@@ -52,7 +52,7 @@ object IntegerParser extends SCombinator[Int] {
 ```
 
 In this example, `P[Int]` indicates that the parse result is `Int` .
-`digit` matches one of character from `[0-9]`.  `digit.*` matches the repetition
+`digit` defined using `set` combinator matches one of character from `[0-9]`.  `digit.*` matches the repetition
 of `digit` and the result is translated to `Int` by `map{ case digits => digits.mkString.toInt }` .
 
 ## More Information

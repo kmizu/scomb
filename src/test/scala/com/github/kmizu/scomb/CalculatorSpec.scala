@@ -16,7 +16,7 @@ class CalculatorSpec extends FunSpec with DiagrammedAssertions {
     }
     def P: Parser[Int] = (for {
       _ <- string("("); e <- expression; _ <- string(")") } yield e) | number
-    def number: Parser[Int] = oneOf('0'to'9').*.map{digits => digits.mkString.toInt}
+    def number: Parser[Int] = set('0'to'9').*.map{ digits => digits.mkString.toInt}
   }
   import Calculator._
 

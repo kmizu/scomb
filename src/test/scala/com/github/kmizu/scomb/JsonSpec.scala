@@ -69,7 +69,7 @@ class JsonSpec extends FunSpec with DiagrammedAssertions {
     lazy val jstring: Parser[JValue] = string ^^ {v => JString(v)}
 
     lazy val jnumber: Parser[JValue] = for {
-      value <- (oneOf('0'to'9').+) ^^ { case digits => JNumber(digits.mkString.toInt) }
+      value <- (set('0'to'9').+) ^^ { case digits => JNumber(digits.mkString.toInt) }
       _ <- space.*
     } yield value
 
