@@ -33,4 +33,4 @@ Add the following line to your `build.sbt`
 libraryDependencies += "com.github.kmizu" %% "scomb" % "0.1"
 ```
 
-See [Scaladoc](http://javadoc-badge.appspot.com/com.github.kmizu/scomb_2.12.svg?label=scaladoc)](http://javadoc-badge.appspot.com/com.github.kmizu/scomb_2.12/index.html#com.github.kmizu.scomb.package)
+See [Scaladoc](http://javadoc-badge.appspot.com/com.github.kmizu/scomb_2.12/index.html#com.github.kmizu.scomb.package)
