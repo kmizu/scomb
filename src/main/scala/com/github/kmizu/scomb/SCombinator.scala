@@ -249,6 +249,16 @@ abstract class SCombinator[R] {self =>
       */
     def ^^[U](function: T => U): Parser[U] = map(function)
 
+    /**
+      * Returns a parser such that
+      * 1. this parses from current position
+      * 2. convert the intermediate result of type <code>T</code> to a parser.
+      * 3. the parser parses from the next position and returns the result of type <code>U</code>
+      *
+      * @param function
+      * @tparam U
+      * @return
+      */
     def flatMap[U](function: T => Parser[U]): Parser[U] = parserOf{index =>
       this(index) match {
         case Success(value, next) =>
@@ -401,12 +411,19 @@ abstract class SCombinator[R] {self =>
     Success(locations(index), index)
   }
 
+  /**
+    * Rerurns a parser that matches any element of <code>seqs</code>
+    */
   final def oneOf(seqs: Seq[Char]*): Parser[String] = parserOf{index =>
     if(isEOF(index) || !seqs.exists(seq => seq.exists(ch => ch == current(index).charAt(0))))
       Failure(s"Expected:${seqs.mkString("[", ",", "]")}", index)
     else Success(current(index).substring(0, 1), index + 1)
   }
 
+  /**
+    * Returns a parser that matches <code>literal</code>
+    * @return
+    */
   final def regularExpression(literal: Regex): Parser[String] = parserOf{index =>
     if(isEOF(index)) {
       Failure(s"""Expected:"${literal}" Actual:EOF""", index)
@@ -434,6 +451,9 @@ abstract class SCombinator[R] {self =>
     }
   }
 
+  /**
+    * Returns a parser that matches any character except EOF.
+    */
   final def any: Parser[Char] = parserOf{index =>
     if(isEOF(index)) {
       Failure(s"Unexpected EOF", index)
@@ -442,6 +462,9 @@ abstract class SCombinator[R] {self =>
     }
   }
 
+  /**
+    * Returns a parser that succeeds iff <code>parser</code> fails.
+    */
   final def not(parser: Parser[Any]): Parser[Any] = parserOf{index =>
     parser(index) match {
       case Success(_, _) => Failure("Not Expected", index)
@@ -455,6 +478,9 @@ abstract class SCombinator[R] {self =>
     */
   final def $(literal: String): Parser[String] = string(literal)
 
+  /**
+    * Returns a parser that matches one character without <code>char</code>
+    */
   final def except(char: Char): Parser[String] = parserOf{index =>
     if(isEOF(index)) {
       Failure(s"Unexpected EOF", index)
@@ -484,8 +510,6 @@ abstract class SCombinator[R] {self =>
       }
     }
   }
-
-
 
   def chainl[T](p: Parser[T])(q: Parser[(T, T) => T]): Parser[T] = {
     (p ~ (q ~ p).*).map { case x ~ xs =>
