@@ -27,7 +27,7 @@ testOptions in Test += Tests.Argument("-u", "target/scalatest-reports")
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions")
 
 initialCommands in console += {
-  Iterator().map("import "+).mkString("\n")
+  Iterator("com.github.kmizu.scomb._").map("import "+).mkString("\n")
 }
 
 pomExtra := (
