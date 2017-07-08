@@ -57,4 +57,15 @@ of `digit` and the result is translated to `Int` by `map{ case digits => digits.
 
 ## More Information
 
-See [Scaladoc](http://javadoc-badge.appspot.com/com.github.kmizu/scomb_2.12/com/github/kmizu/scomb/index.html)
+Some examples are below:
+
+- [CalculatorSpec](https://github.com/kmizu/scomb/blob/releases/0.1/src/test/scala/com/github/kmizu/scomb/CalculatorSpec.scala)
+  - Arithmetic Expression Parser
+- [JsonSpec](https://github.com/kmizu/scomb/blob/releases/0.1/src/test/scala/com/github/kmizu/scomb/JsonSpec.scala)
+  - JSON Parser
+- [RegularExpressionSpec](https://github.com/kmizu/scomb/blob/releases/0.1/src/test/scala/com/github/kmizu/scomb/RegularExpressionSpec.scala)
+  - (Basic) Regular Expression Parser
+
+## Scaladoc
+
+[Here](http://javadoc-badge.appspot.com/com.github.kmizu/scomb_2.12/com/github/kmizu/scomb/index.html)
