@@ -5,10 +5,10 @@
 [![Scaladoc](http://javadoc-badge.appspot.com/com.github.kmizu/scomb_2.12.svg?label=scaladoc)](http://javadoc-badge.appspot.com/com.github.kmizu/scomb_2.12/index.html#com.github.kmizu.scomb.package)
 [![Reference Status](https://www.versioneye.com/java/com.github.kmizu:scomb_2.11/reference_badge.svg?style=flat)](https://www.versioneye.com/java/com.github.kmizu:scomb_2.12/references)
 
-Scomb (su-ko-n-bu) is a simple but powerful parser combinator library written in Scala.
-Scomb aims to replace [scala-parser-combinators](https://github.com/scala/scala-parser-combinators).
+SComb (su-ko-n-bu) is a simple but powerful parser combinator library written in Scala.
+SComb aims to replace [scala-parser-combinators](https://github.com/scala/scala-parser-combinators).
 
-## Features of Scomb (0.1):
+## Features of SComb (0.1):
 
 - primitive combinators
   - string literal
@@ -25,7 +25,7 @@ Scomb aims to replace [scala-parser-combinators](https://github.com/scala/scala-
 - the combinators for better error reporting
   - `fatal` , to convert the failure to fatal error
 
-## Usage of Scomb
+## Usage of SComb
 
 Add the following line to your `build.sbt`
 
