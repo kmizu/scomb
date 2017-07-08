@@ -380,7 +380,7 @@ abstract class SCombinator[R] {self =>
     locations(i) = Location(line, column)
   }
 
-  final def parse(input: String): ParseResult[R] = synchronized {
+  final def parsePartial(input: String): ParseResult[R] = synchronized {
     this.input = input
     this.recent = None
     this.locations.clear()
@@ -392,8 +392,8 @@ abstract class SCombinator[R] {self =>
     }
   }
 
-  final def parseAll(input: String): Result[R] = synchronized {
-    parse(input) match {
+  final def parse(input: String): Result[R] = synchronized {
+    parsePartial(input) match {
       case Success(value, i) =>
         if(isEOF(i)) {
           Result.Success(value)

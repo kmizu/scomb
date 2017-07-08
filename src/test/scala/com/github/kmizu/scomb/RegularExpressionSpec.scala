@@ -40,29 +40,29 @@ class RegularExpressionSpec extends FunSpec with DiagrammedAssertions {
     var input = ""
     it("should parse one character") {
       input = "0"
-      assert(parseAll(input) == Result.Success(Value('0')))
+      assert(parse(input) == Result.Success(Value('0')))
       input = "1"
-      assert(parseAll(input) == Result.Success(Value('1')))
+      assert(parse(input) == Result.Success(Value('1')))
       input = "9"
-      assert(parseAll(input) == Result.Success(Value('9')))
+      assert(parse(input) == Result.Success(Value('9')))
     }
     it("should parser multiple characters") {
       input = "19"
-      assert(parseAll(input) == Result.Success(Sequence(Value('1'), Value('9'))))
+      assert(parse(input) == Result.Success(Sequence(Value('1'), Value('9'))))
       input = "ab"
-      assert(parseAll(input) == Result.Success(Sequence(Value('a'), Value('b'))))
+      assert(parse(input) == Result.Success(Sequence(Value('a'), Value('b'))))
       input = "abc"
-      assert(parseAll(input) == Result.Success(Sequence(Sequence(Value('a'), Value('b')), Value('c'))))
+      assert(parse(input) == Result.Success(Sequence(Sequence(Value('a'), Value('b')), Value('c'))))
     }
     it("should parse more complex expressions") {
       input = "1|9"
-      assert(parseAll(input) == Result.Success(Choice(Value('1'), Value('9'))))
+      assert(parse(input) == Result.Success(Choice(Value('1'), Value('9'))))
       input = "(1|9)0"
-      assert(parseAll(input) == Result.Success(Sequence(Choice(Value('1'), Value('9')), Value('0'))))
+      assert(parse(input) == Result.Success(Sequence(Choice(Value('1'), Value('9')), Value('0'))))
       input = "(1|9)*"
-      assert(parseAll(input) == Result.Success(Repeat(Choice(Value('1'), Value('9')))))
+      assert(parse(input) == Result.Success(Repeat(Choice(Value('1'), Value('9')))))
       input = "*"
-      assert(parseAll(input) == Result.Failure(Location(1, 1), "Expected:\"\\\""))
+      assert(parse(input) == Result.Failure(Location(1, 1), "Expected:\"\\\""))
     }
   }
 }
