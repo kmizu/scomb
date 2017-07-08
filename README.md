@@ -53,7 +53,7 @@ object IntegerParser extends SCombinator[Int] {
 
 In this example, `P[Int]` indicates that the parse result is `Int` .
 `digit` matches one of character from `[0-9]`.  `digit.*` matches the repetition
-of `digit` and the result is translated to `Int` .
+of `digit` and the result is translated to `Int` by `map{ case digits => digits.mkString.toInt }` .
 
 ## More Information
 
