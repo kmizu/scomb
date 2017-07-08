@@ -194,6 +194,28 @@ abstract class SCombinator[R] {self =>
     }
 
     /**
+      * Returns a alternation parser.
+      * It selects longest match.
+      */
+    def |||[U >: T](rhs: Parser[U]): Parser[U] = parserOf{index =>
+      (this(index), rhs(index)) match {
+        case (Success(v1, index1), Success(v2, index2)) =>
+          if((index1 - index) > (index2 - index))
+            Success(v1, index1)
+          else
+            Success(v2, index2)
+        case (s@Success(_, _), _) =>
+          s
+        case (_, s@Success(_, _)) =>
+          s
+        case (f@Failure(_, _), _) =>
+          f
+        case (f@Fatal(_, _), _) =>
+          f
+      }
+    }
+
+    /**
       * Returns a Parser
       * which only succeeds iff <code>predicate(result)</code> is <code>true</code>.
       * @param message the error message in that <code>predicate(result)</code> is <code>false</code>
