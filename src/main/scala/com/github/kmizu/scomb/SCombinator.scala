@@ -90,7 +90,7 @@ abstract class SCombinator[R] {self =>
       *   } yield u
       * </pre>
       */
-    def >>[U](rhs: Parser[U]): Parser[U] = for {
+    def >>[U](rhs: => Parser[U]): Parser[U] = for {
       _ <- this
       u <- rhs
     } yield u
@@ -106,7 +106,7 @@ abstract class SCombinator[R] {self =>
       *   } yield t
       * </pre>
       */
-    def <<[U](rhs: Parser[U]): Parser[T] = for {
+    def <<[U](rhs: => Parser[U]): Parser[T] = for {
       t <- this
       _ <- rhs
     } yield t
@@ -117,7 +117,7 @@ abstract class SCombinator[R] {self =>
       * @param separator this parses separator, which result is ignored
       * @return
       */
-    def repeat0By(separator: Parser[Any]): Parser[List[T]] = {
+    def repeat0By(separator: => Parser[Any]): Parser[List[T]] = {
       this.repeat1By(separator).? ^^ {
         case None => Nil
         case Some(list) => list
@@ -130,7 +130,7 @@ abstract class SCombinator[R] {self =>
       * @param separator this parses separator, which result is ignored
       * @return
       */
-    def repeat1By(separator: Parser[Any]): Parser[List[T]] = {
+    def repeat1By(separator: => Parser[Any]): Parser[List[T]] = {
       this ~ (separator ~ this).* ^^ { case b ~ bs =>
         bs.foldLeft(b::Nil) { case (bs, _ ~ b) =>
           b::bs
@@ -155,7 +155,7 @@ abstract class SCombinator[R] {self =>
     /**
       * Returns a sequential Parser consists of <code>this</code> and <code>rhs</code>.
       */
-    def ~[U](right: Parser[U]) : Parser[T ~ U] = parserOf{index =>
+    def ~[U](right: => Parser[U]) : Parser[T ~ U] = parserOf{index =>
       this(index) match {
         case Success(value1, next1) =>
           right(next1) match {
@@ -192,7 +192,7 @@ abstract class SCombinator[R] {self =>
       * @tparam U the result type of <code>rhs</code>
       * @return
       */
-    def |[U >: T](rhs: Parser[U]): Parser[U] = parserOf{index =>
+    def |[U >: T](rhs: => Parser[U]): Parser[U] = parserOf{index =>
       this(index) match {
         case success@Success(_, _) => success
         case Failure(_, _) => rhs(index)
@@ -204,7 +204,7 @@ abstract class SCombinator[R] {self =>
       * Returns a alternation parser.
       * It selects longest match.
       */
-    def |||[U >: T](rhs: Parser[U]): Parser[U] = parserOf{index =>
+    def |||[U >: T](rhs: => Parser[U]): Parser[U] = parserOf{index =>
       (this(index), rhs(index)) match {
         case (Success(v1, index1), Success(v2, index2)) =>
           if((index1 - index) > (index2 - index))
