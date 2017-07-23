@@ -4,7 +4,7 @@ import org.scalatest.{DiagrammedAssertions, FunSpec}
 
 class CalculatorSpec extends FunSpec with DiagrammedAssertions {
   object Calculator extends SCombinator[Int] {
-    def root: Parser[Int] = expression << EOF
+    def root: Parser[Int] = expression
     def expression: Parser[Int] = A
     def A: Parser[Int] = chainl(M) {
       $("+").map{op => (lhs: Int, rhs: Int) => lhs + rhs} |
@@ -31,18 +31,17 @@ class CalculatorSpec extends FunSpec with DiagrammedAssertions {
       assert(parse(input) == Result.Success(9))
     }
     it("cannot parse incorrect expressions, which ends with unexpected EOF") {
-      input = "1+"
-      assert(Result.Success(1) == parse(input))
-      //val failure = parse(input).asInstanceOf[Result.Failure]
-      //assert(Location(1, 3) == failure.location)
-      //assert("Unconsumed Input: *3/2" == failure.message)
+      input = "1+ "
+      val failure = parse(input).asInstanceOf[Result.Failure]
+      assert(Location(1, 2) == failure.location)
+      assert("unconsumed input:`+ `" == failure.message)
     }
 
     it("cannot parse incorrect expressions, which contains spaces") {
       input = "(1-5) *3/2"
       val failure = parse(input).asInstanceOf[Result.Failure]
       assert(Location(1, 6) == failure.location)
-      assert("expected eof, actual: ` `" == failure.message)
+      assert("unconsumed input:` *3/2`" == failure.message)
     }
   }
 }

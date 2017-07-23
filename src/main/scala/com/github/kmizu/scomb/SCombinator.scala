@@ -57,7 +57,7 @@ abstract class SCombinator[R] {self =>
             case r => throw new RuntimeException("cannot be " + r)
           }
         case Failure(message, next) =>
-          Success(Nil, next)
+          Success(Nil, index)
         case f@Error(_, _) =>
           f
       }
@@ -440,7 +440,7 @@ abstract class SCombinator[R] {self =>
         if(isEOF(i)) {
           Result.Success(value)
         } else {
-          Result.Failure(locations(i), "Unconsumed Input:" + current(i))
+          Result.Failure(locations(i), s"unconsumed input:`${current(i)}`")
         }
       case Failure(message, index) =>
         Result.Failure(locations(index), message)
@@ -458,7 +458,7 @@ abstract class SCombinator[R] {self =>
     */
   final def set(seqs: Seq[Char]*): Parser[String] = parserOf{ index =>
     if(isEOF(index) || !seqs.exists(seq => seq.exists(ch => ch == current(index).charAt(0))))
-      Failure(s"Expected:${seqs.mkString("[", ",", "]")}", index)
+      Failure(s"expected:${seqs.mkString("[", ",", "]")}", index)
     else Success(current(index).substring(0, 1), index + 1)
   }
 
@@ -468,12 +468,12 @@ abstract class SCombinator[R] {self =>
     */
   final def regularExpression(literal: Regex): Parser[String] = parserOf{index =>
     if(isEOF(index)) {
-      Failure(s"""Expected:"${literal}" Actual:EOF""", index)
+      Failure(s"expected:`${literal}` actual:EOF", index)
     } else {
       val substring = current(index)
       literal.findPrefixOf(substring) match {
         case Some(prefix) => Success(substring.substring(prefix.length), index + prefix.length)
-        case None => Failure(s"""Expected:"${literal}"""", index)
+        case None => Failure(s"expected:`${literal}`", index)
       }
     }
   }
@@ -485,11 +485,11 @@ abstract class SCombinator[R] {self =>
 
   final def string(literal: String): Parser[String] = parserOf{index =>
     if(isEOF(index)) {
-      Failure(s"""Expected:"${literal}" Actual:EOF""", index)
+      Failure(s"expected:`${literal}` actual:EOF", index)
     } else if(current(index).startsWith(literal)) {
       Success(literal, index + literal.length)
     } else {
-      Failure(s"""Expected:"${literal}"""", index)
+      Failure(s"expected:`${literal}`", index)
     }
   }
 
@@ -498,7 +498,7 @@ abstract class SCombinator[R] {self =>
     */
   final def any: Parser[Char] = parserOf{index =>
     if(isEOF(index)) {
-      Failure(s"Unexpected EOF", index)
+      Failure(s"unexpected EOF", index)
     } else {
       Success(current(index).charAt(0), index + 1)
     }
@@ -509,7 +509,7 @@ abstract class SCombinator[R] {self =>
     */
   final def not(parser: Parser[Any]): Parser[Any] = parserOf{index =>
     parser(index) match {
-      case Success(_, _) => Failure("Not Expected", index)
+      case Success(_, _) => Failure("not expected", index)
       case Failure(_, _) => Success("", index)
       case f@Error(_, _) => f
     }
@@ -525,11 +525,11 @@ abstract class SCombinator[R] {self =>
     */
   final def except(char: Char): Parser[String] = parserOf{index =>
     if(isEOF(index)) {
-      Failure(s"Unexpected EOF", index)
+      Failure(s"unexpected EOF", index)
     } else if(current(index).charAt(0) != char) {
       Success("" + current(index).charAt(0), index + 1)
     } else {
-      Failure(s"Unexpected Character:${char}", index)
+      Failure(s"unexpected character:${char}", index)
     }
   }
 

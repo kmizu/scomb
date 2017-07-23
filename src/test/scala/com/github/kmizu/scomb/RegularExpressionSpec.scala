@@ -62,7 +62,7 @@ class RegularExpressionSpec extends FunSpec with DiagrammedAssertions {
       input = "(1|9)*"
       assert(parse(input) == Result.Success(Repeat(Choice(Value('1'), Value('9')))))
       input = "*"
-      assert(parse(input) == Result.Failure(Location(1, 1), "Expected:\"\\\""))
+      assert(parse(input) == Result.Failure(Location(1, 1), "expected:`\\`"))
     }
   }
 }

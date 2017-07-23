@@ -139,7 +139,7 @@ class JsonSpec extends FunSpec with DiagrammedAssertions {
     it("cannot parse incorrect object") {
       val failure = parse("{").asInstanceOf[Result.Failure]
       assert(Location(1, 2) == failure.location)
-      assert("""Expected:"}" Actual:EOF""" == failure.message)
+      assert("""expected:`}` actual:EOF""" == failure.message)
     }
   }
 }
