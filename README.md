@@ -8,13 +8,13 @@
 SComb (su-ko-n-bu) is a simple but powerful parser combinator library written in Scala.
 SComb aims to replace [scala-parser-combinators](https://github.com/scala/scala-parser-combinators).
 
-## Features of SComb (0.1):
+## Features of SComb (0.2):
 
 - primitive combinators
-  - string literal
-  - regular expression literal
-  - any character (wildcard)
-  - character set
+  - string literal ( `""` )
+  - regular expression literal ( `"".r` )
+  - any character (wildcard) ( `any` )
+  - character set ( `set(...)` )
 - the other combinators
   - zero or one ( `e.?` )
   - zero or more ( `e.*` )
@@ -23,14 +23,14 @@ SComb aims to replace [scala-parser-combinators](https://github.com/scala/scala-
   - handling left-associativity ( `chainl` )
   - methods to use for-comprehension ( `map` , `flatMap` `filter` )
 - the combinators for better error reporting
-  - `fatal` , to convert the failure to fatal error
+  - `commit` and `withErrorMessage` , to convert the failure to error parser
 
 ## Install SComb
 
 Add the following line to your `build.sbt`
 
 ```scala
-libraryDependencies += "com.github.kmizu" %% "scomb" % "0.1"
+libraryDependencies += "com.github.kmizu" %% "scomb" % "0.2"
 ```
 
 ## Getting Started
@@ -59,11 +59,11 @@ of `digit` and the result is translated to `Int` by `map{ case digits => digits.
 
 Some examples are below:
 
-- [CalculatorSpec](https://github.com/kmizu/scomb/blob/releases/0.1/src/test/scala/com/github/kmizu/scomb/CalculatorSpec.scala)
+- [CalculatorSpec](https://github.com/kmizu/scomb/blob/releases/0.2/src/test/scala/com/github/kmizu/scomb/CalculatorSpec.scala)
   - Arithmetic Expression Parser
-- [JsonSpec](https://github.com/kmizu/scomb/blob/releases/0.1/src/test/scala/com/github/kmizu/scomb/JsonSpec.scala)
+- [JsonSpec](https://github.com/kmizu/scomb/blob/releases/0.2/src/test/scala/com/github/kmizu/scomb/JsonSpec.scala)
   - JSON Parser
-- [RegularExpressionSpec](https://github.com/kmizu/scomb/blob/releases/0.1/src/test/scala/com/github/kmizu/scomb/RegularExpressionSpec.scala)
+- [RegularExpressionSpec](https://github.com/kmizu/scomb/blob/releases/0.2/src/test/scala/com/github/kmizu/scomb/RegularExpressionSpec.scala)
   - (Basic) Regular Expression Parser
 
 ## Scaladoc
