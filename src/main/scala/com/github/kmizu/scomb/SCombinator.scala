@@ -237,14 +237,22 @@ abstract class SCombinator[R] {self =>
     }
 
     /**
-      * Replace the failed parser with a fatal parser.
+      * Replace the failure parser with the error parser.
       * It is used to suppress backtracks.
       * @param message the error message
       */
-    def fatal(message: String): Parser[T] = parserOf{index =>
+    def withErrorMessage(message: String): Parser[T] = parserOf{ index =>
       this(index) match {
         case r@Success(_, _) => r
         case Failure(_, index) => Error(message, index)
+        case r@Error(_, _) => r
+      }
+    }
+
+    def commit: Parser[T] = parserOf{index =>
+      this(index) match {
+        case r@Success(_, _) => r
+        case Failure(message, index)  => Error(message, index)
         case r@Error(_, _) => r
       }
     }
