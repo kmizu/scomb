@@ -18,6 +18,13 @@ abstract class SCombinator[R] {self =>
     $(" ") | $("\t") | $("\b") | $("\f") | $("\r\n") | $("\r") | $("\n")
   )
 
+  def EOF: Parser[String] = parserOf{index =>
+    if(input.length == index)
+      Success("", index)
+    else
+      Failure(s"expected eof, actual: `${input.charAt(index)}`", index)
+  }
+
   def token(symbol: String): Parser[String] = for {
     s <- $(symbol)
     _ <- space.*

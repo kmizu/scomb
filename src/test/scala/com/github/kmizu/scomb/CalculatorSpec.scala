@@ -4,19 +4,19 @@ import org.scalatest.{DiagrammedAssertions, FunSpec}
 
 class CalculatorSpec extends FunSpec with DiagrammedAssertions {
   object Calculator extends SCombinator[Int] {
-    def root: Parser[Int] = expression
+    def root: Parser[Int] = expression << EOF
     def expression: Parser[Int] = A
     def A: Parser[Int] = chainl(M) {
       $("+").map{op => (lhs: Int, rhs: Int) => lhs + rhs} |
-        $("-").map{op => (lhs: Int, rhs: Int) => lhs - rhs}
+      $("-").map{op => (lhs: Int, rhs: Int) => lhs - rhs}
     }
     def M: Parser[Int] = chainl(P) {
       $("*").map{op => (lhs: Int, rhs: Int) => lhs * rhs} |
-        $("/").map{op => (lhs: Int, rhs: Int) => lhs / rhs}
+      $("/").map{op => (lhs: Int, rhs: Int) => lhs / rhs}
     }
     def P: Parser[Int] = (for {
       _ <- string("("); e <- expression; _ <- string(")") } yield e) | number
-    def number: Parser[Int] = set('0'to'9').*.map{ digits => digits.mkString.toInt}
+    def number: Parser[Int] = set('0'to'9').+.map{ digits => digits.mkString.toInt}
   }
   import Calculator._
 
@@ -30,11 +30,19 @@ class CalculatorSpec extends FunSpec with DiagrammedAssertions {
       input = "(1+5)*3/2"
       assert(parse(input) == Result.Success(9))
     }
-    it("cannot parse incorret expressions") {
+    it("cannot parse incorrect expressions, which ends with unexpected EOF") {
+      input = "1+"
+      assert(Result.Success(1) == parse(input))
+      //val failure = parse(input).asInstanceOf[Result.Failure]
+      //assert(Location(1, 3) == failure.location)
+      //assert("Unconsumed Input: *3/2" == failure.message)
+    }
+
+    it("cannot parse incorrect expressions, which contains spaces") {
       input = "(1-5) *3/2"
       val failure = parse(input).asInstanceOf[Result.Failure]
       assert(Location(1, 6) == failure.location)
-      assert("Unconsumed Input: *3/2" == failure.message)
+      assert("expected eof, actual: ` `" == failure.message)
     }
   }
 }
