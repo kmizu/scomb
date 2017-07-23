@@ -249,6 +249,11 @@ abstract class SCombinator[R] {self =>
       }
     }
 
+    /**
+      * This method is same as `withErrorMessage()` except for
+      * no message being specified.
+      * @return
+      */
     def commit: Parser[T] = parserOf{index =>
       this(index) match {
         case r@Success(_, _) => r
