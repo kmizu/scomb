@@ -63,7 +63,7 @@ abstract class SCombinator[R] {self =>
       }
       repeat(index) match {
         case r@Success(_, _) => r
-        case r:ParseFailure => r
+        case r:ParseNonSuccess => r
       }
     }
 
@@ -331,7 +331,7 @@ abstract class SCombinator[R] {self =>
   /**
     * An ADT that represent the parse result in the case that the parser failed.
     */
-  sealed abstract class ParseFailure extends ParseResult[Nothing] {
+  sealed abstract class ParseNonSuccess extends ParseResult[Nothing] {
     def message: String
   }
 
@@ -350,7 +350,7 @@ abstract class SCombinator[R] {self =>
     * @param message the error message
     * @param index the next index
     */
-  case class Failure(override val message: String, override val index: Int) extends ParseFailure {
+  case class Failure(override val message: String, override val index: Int) extends ParseNonSuccess {
     self.recent match {
       case None => self.recent = Some(this)
       case Some(failure) if index >= failure.index => self.recent = Some(this)
@@ -364,7 +364,7 @@ abstract class SCombinator[R] {self =>
     * @param message the error message
     * @param index the next index
     */
-  case class Error(override val message: String, override val index: Int) extends ParseFailure {
+  case class Error(override val message: String, override val index: Int) extends ParseNonSuccess {
     override def value: Option[Nothing] = None
   }
 
