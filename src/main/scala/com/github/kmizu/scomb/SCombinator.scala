@@ -472,7 +472,7 @@ abstract class SCombinator[R] {self =>
     } else {
       val substring = current(index)
       literal.findPrefixOf(substring) match {
-        case Some(prefix) => Success(substring.substring(prefix.length), index + prefix.length)
+        case Some(prefix) => Success(prefix, index + prefix.length)
         case None => Failure(s"expected:`${literal}`", index)
       }
     }
