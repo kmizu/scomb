@@ -179,8 +179,8 @@ abstract class SCombinator[R] {self =>
     def ? : Parser[Option[T]] = parserOf{index =>
       this(index) match {
         case Success(v, i) => Success(Some(v), i)
-        case Failure(message, i) => Success(None, i)
-        case fatal@Error(_, _) => fatal
+        case Failure(message, i) => Success(None, index)
+        case error@Error(_, _) => error
       }
     }
 
