@@ -8,7 +8,7 @@
 SComb (su-ko-n-bu) is a simple but powerful parser combinator library written in Scala.
 SComb aims to replace [scala-parser-combinators](https://github.com/scala/scala-parser-combinators).
 
-## Features of SComb (0.4):
+## Features of SComb (0.5):
 
 - primitive combinators
   - string literal ( `""` )
@@ -30,7 +30,7 @@ SComb aims to replace [scala-parser-combinators](https://github.com/scala/scala-
 Add the following line to your `build.sbt`
 
 ```scala
-libraryDependencies += "com.github.kmizu" %% "scomb" % "0.4"
+libraryDependencies += "com.github.kmizu" %% "scomb" % "0.5"
 ```
 
 ## Getting Started
@@ -59,11 +59,11 @@ of `digit` and the result is translated to `Int` by `map{ case digits => digits.
 
 Some examples are below:
 
-- [CalculatorSpec](https://github.com/kmizu/scomb/blob/releases/0.4/src/test/scala/com/github/kmizu/scomb/CalculatorSpec.scala)
+- [CalculatorSpec](https://github.com/kmizu/scomb/blob/releases/0.5/src/test/scala/com/github/kmizu/scomb/CalculatorSpec.scala)
   - Arithmetic Expression Parser
-- [JsonSpec](https://github.com/kmizu/scomb/blob/releases/0.4/src/test/scala/com/github/kmizu/scomb/JsonSpec.scala)
+- [JsonSpec](https://github.com/kmizu/scomb/blob/releases/0.5/src/test/scala/com/github/kmizu/scomb/JsonSpec.scala)
   - JSON Parser
-- [RegularExpressionSpec](https://github.com/kmizu/scomb/blob/releases/0.4/src/test/scala/com/github/kmizu/scomb/RegularExpressionSpec.scala)
+- [RegularExpressionSpec](https://github.com/kmizu/scomb/blob/releases/0.5/src/test/scala/com/github/kmizu/scomb/RegularExpressionSpec.scala)
   - (Basic) Regular Expression Parser
 
 ## Scaladoc
