@@ -10,7 +10,7 @@ abstract class SCombinator[R] {self =>
 
   protected var recent: Option[Failure] = None
 
-  protected var fatal: Option[Fatal] = None
+  protected var fatal: Option[Error] = None
 
   protected val locations: mutable.Map[Int, Location] = mutable.Map[Int, Location]()
 
@@ -46,12 +46,12 @@ abstract class SCombinator[R] {self =>
           repeat(next1) match {
             case Success(result, next2) =>
               Success(value::result, next2)
-            case r@Fatal(_, _) => r
+            case r@Error(_, _) => r
             case r => throw new RuntimeException("cannot be " + r)
           }
         case Failure(message, next) =>
           Success(Nil, next)
-        case f@Fatal(_, _) =>
+        case f@Error(_, _) =>
           f
       }
       repeat(index) match {
@@ -141,7 +141,7 @@ abstract class SCombinator[R] {self =>
       this(index) match {
         case r@Success(_, _) => r
         case Failure(_, index) => Failure(message, index)
-        case Fatal(_, index) => Fatal(message, index)
+        case Error(_, index) => Error(message, index)
       }
     }
 
@@ -156,12 +156,12 @@ abstract class SCombinator[R] {self =>
               Success(new ~(value1, value2), next2)
             case failure@Failure(_, _) =>
               failure
-            case fatal@Fatal(_, _) =>
+            case fatal@Error(_, _) =>
               fatal
           }
         case failure@Failure(message, next) =>
           failure
-        case fatal@Fatal(_, _) =>
+        case fatal@Error(_, _) =>
           fatal
       }
     }
@@ -173,7 +173,7 @@ abstract class SCombinator[R] {self =>
       this(index) match {
         case Success(v, i) => Success(Some(v), i)
         case Failure(message, i) => Success(None, i)
-        case fatal@Fatal(_, _) => fatal
+        case fatal@Error(_, _) => fatal
       }
     }
 
@@ -189,7 +189,7 @@ abstract class SCombinator[R] {self =>
       this(index) match {
         case success@Success(_, _) => success
         case Failure(_, _) => rhs(index)
-        case fatal@Fatal(_, _) => fatal
+        case fatal@Error(_, _) => fatal
       }
     }
 
@@ -210,7 +210,7 @@ abstract class SCombinator[R] {self =>
           s
         case (f@Failure(_, _), _) =>
           f
-        case (f@Fatal(_, _), _) =>
+        case (f@Error(_, _), _) =>
           f
       }
     }
@@ -231,7 +231,7 @@ abstract class SCombinator[R] {self =>
             Failure(message, index)
         case failure@Failure(_, _) =>
           failure
-        case fatal@Fatal(_, _) =>
+        case fatal@Error(_, _) =>
           fatal
       }
     }
@@ -244,8 +244,8 @@ abstract class SCombinator[R] {self =>
     def fatal(message: String): Parser[T] = parserOf{index =>
       this(index) match {
         case r@Success(_, _) => r
-        case Failure(_, index) => Fatal(message, index)
-        case r@Fatal(_, _) => r
+        case Failure(_, index) => Error(message, index)
+        case r@Error(_, _) => r
       }
     }
 
@@ -262,7 +262,7 @@ abstract class SCombinator[R] {self =>
       this(index) match {
         case Success(value, next) => Success(function(value), next)
         case failure@Failure(_, _) => failure
-        case fatal@Fatal(_, _) => fatal
+        case fatal@Error(_, _) => fatal
       }
     }
 
@@ -287,7 +287,7 @@ abstract class SCombinator[R] {self =>
           function.apply(value).apply(next)
         case failure@Failure(_, _) =>
           failure
-        case fatal@Fatal(_, _) =>
+        case fatal@Error(_, _) =>
           fatal
       }
     }
@@ -344,7 +344,7 @@ abstract class SCombinator[R] {self =>
     * @param message the error message
     * @param index the next index
     */
-  case class Fatal(override val message: String, override val index: Int) extends ParseFailure {
+  case class Error(override val message: String, override val index: Int) extends ParseFailure {
     override def value: Option[Nothing] = None
   }
 
@@ -410,7 +410,7 @@ abstract class SCombinator[R] {self =>
     root(0) match {
       case s@Success(_, _) => s
       case f@Failure(_, _) => recent.get
-      case f@Fatal(_,  _) => f
+      case f@Error(_,  _) => f
     }
   }
 
@@ -424,7 +424,7 @@ abstract class SCombinator[R] {self =>
         }
       case Failure(message, index) =>
         Result.Failure(locations(index), message)
-      case Fatal(message, index) =>
+      case Error(message, index) =>
         Result.Failure(locations(index), message)
     }
   }
@@ -491,7 +491,7 @@ abstract class SCombinator[R] {self =>
     parser(index) match {
       case Success(_, _) => Failure("Not Expected", index)
       case Failure(_, _) => Success("", index)
-      case f@Fatal(_, _) => f
+      case f@Error(_, _) => f
     }
   }
 
