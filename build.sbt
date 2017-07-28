@@ -2,11 +2,11 @@ organization := "com.github.kmizu"
 
 name := "scomb"
 
-scalaVersion := "2.12.2"
+scalaVersion := "2.12.3"
 
 publishMavenStyle := true
 
-crossScalaVersions := Seq("2.11.8", "2.12.2")
+crossScalaVersions := Seq("2.11.8", scalaVersion.value)
 
 libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "3.0.0" % "test",
