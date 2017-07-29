@@ -479,6 +479,13 @@ abstract class SCombinator[R] {self =>
   }
 
   /**
+    * Returns a rule parser which argument is a body parser
+    */
+  final def rule[A](body: => Parser[A]): Parser[A] = parserOf { index =>
+    body(index)
+  }
+
+  /**
     * It is same as <code>regularExpression</code> method.
     */
   final def r(literal: Regex): Parser[String] = regularExpression(literal)
