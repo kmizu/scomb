@@ -42,7 +42,9 @@ You can write your own parser by inheriting
 import com.github.kmizu.scomb.SCombinator
 
 object IntegerParser extends SCombinator[Int] {
-  override def root: P[Int] = (digit.*).map{ case digits => digits.mkString.toInt }
+  override def root: P[Int] = rule {
+    (digit.*).map{ case digits => digits.mkString.toInt }
+  }
   lazy val digit: P[String] = set('0'to'9')
   
   def main(args: Array[String]): Unit = {
@@ -53,17 +55,18 @@ object IntegerParser extends SCombinator[Int] {
 
 In this example, `P[Int]` indicates that the parse result is `Int` .
 `digit` defined using `set` combinator matches one of character from `[0-9]`.  `digit.*` matches the repetition
-of `digit` and the result is translated to `Int` by `map{ case digits => digits.mkString.toInt }` .
+of `digit` and the result is translated to `Int` by `map{ case digits => digits.mkString.toInt }` .  Finally,
+a rule must be enclosed by `rule { ... }` combinator.
 
 ## More Information
 
 Some examples are below:
 
-- [CalculatorSpec](https://github.com/kmizu/scomb/blob/releases/0.5/src/test/scala/com/github/kmizu/scomb/CalculatorSpec.scala)
+- [CalculatorSpec](https://github.com/kmizu/scomb/blob/releases/0.6/src/test/scala/com/github/kmizu/scomb/CalculatorSpec.scala)
   - Arithmetic Expression Parser
-- [JsonSpec](https://github.com/kmizu/scomb/blob/releases/0.5/src/test/scala/com/github/kmizu/scomb/JsonSpec.scala)
+- [JsonSpec](https://github.com/kmizu/scomb/blob/releases/0.6/src/test/scala/com/github/kmizu/scomb/JsonSpec.scala)
   - JSON Parser
-- [RegularExpressionSpec](https://github.com/kmizu/scomb/blob/releases/0.5/src/test/scala/com/github/kmizu/scomb/RegularExpressionSpec.scala)
+- [RegularExpressionSpec](https://github.com/kmizu/scomb/blob/releases/0.6/src/test/scala/com/github/kmizu/scomb/RegularExpressionSpec.scala)
   - (Basic) Regular Expression Parser
 
 ## Scaladoc
