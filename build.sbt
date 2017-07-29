@@ -6,7 +6,7 @@ scalaVersion := "2.12.3"
 
 publishMavenStyle := true
 
-crossScalaVersions := Seq("2.11.8", scalaVersion.value)
+crossScalaVersions := Seq("2.11.11", scalaVersion.value)
 
 libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "3.0.0" % "test",

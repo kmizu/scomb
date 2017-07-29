@@ -229,7 +229,7 @@ abstract class SCombinator[R] {self =>
       */
     def filter(
       predicate: T => Boolean,
-      message: String = "Not Matched to predicate"): Parser[T] = parserOf{index =>
+      message: String = "not matched to predicate"): Parser[T] = parserOf{index =>
       this(index) match {
         case Success(value, next) =>
           if(predicate(value))
@@ -536,7 +536,7 @@ abstract class SCombinator[R] {self =>
   final def predict[A](cases: (Char, Parser[A])*): Parser[A] = parserOf{index =>
     def newFailureMessage(head: Char, cases: Map[Char, Parser[A]]): String = {
       val expectation = cases.map{ case (ch, _) => ch}.mkString("[", ",", "]")
-      s"Expect:${expectation} Actual:${head}"
+      s"expect:${expectation} actual:${head}"
     }
 
     if(isEOF(index)) {
