@@ -8,13 +8,15 @@
 SComb (su-ko-n-bu) is a simple but powerful parser combinator library written in Scala.
 SComb aims to replace [scala-parser-combinators](https://github.com/scala/scala-parser-combinators).
 
-## Features of SComb (0.5):
+## Features of SComb (0.6):
 
 - primitive combinators
   - string literal ( `""` )
   - regular expression literal ( `"".r` )
   - any character (wildcard) ( `any` )
   - character set ( `set(...)` )
+- rule combinator
+  - used in right-hand side of non-teriminal
 - the other combinators
   - zero or one ( `e.?` )
   - zero or more ( `e.*` )
