@@ -5,18 +5,24 @@ import org.scalatest.{DiagrammedAssertions, FunSpec}
 class CalculatorSpec extends FunSpec with DiagrammedAssertions {
   object Calculator extends SCombinator[Int] {
     def root: Parser[Int] = expression
-    def expression: Parser[Int] = A
-    def A: Parser[Int] = chainl(M) {
-      $("+").map{op => (lhs: Int, rhs: Int) => lhs + rhs} |
-      $("-").map{op => (lhs: Int, rhs: Int) => lhs - rhs}
+
+    def expression: Parser[Int] = rule(A)
+
+    def A: Parser[Int] = rule(chainl(M) {
+      $("+").map { op => (lhs: Int, rhs: Int) => lhs + rhs } |
+        $("-").map { op => (lhs: Int, rhs: Int) => lhs - rhs }
+    })
+
+    def M: Parser[Int] = rule(chainl(P) {
+      $("*").map { op => (lhs: Int, rhs: Int) => lhs * rhs } |
+      $("/").map { op => (lhs: Int, rhs: Int) => lhs / rhs }
+    })
+
+    def P: P[Int] = rule{
+      (for {
+        _ <- string("("); e <- expression; _ <- string(")")} yield e) | number
     }
-    def M: Parser[Int] = chainl(P) {
-      $("*").map{op => (lhs: Int, rhs: Int) => lhs * rhs} |
-      $("/").map{op => (lhs: Int, rhs: Int) => lhs / rhs}
-    }
-    def P: Parser[Int] = (for {
-      _ <- string("("); e <- expression; _ <- string(")") } yield e) | number
-    def number: Parser[Int] = set('0'to'9').+.map{ digits => digits.mkString.toInt}
+    def number: P[Int] = rule(set('0'to'9').+.map{ digits => digits.mkString.toInt})
   }
   import Calculator._
 
