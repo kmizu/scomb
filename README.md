@@ -15,7 +15,7 @@ SComb aims to replace [scala-parser-combinators](https://github.com/scala/scala-
   - regular expression literal ( `"".r` )
   - any character (wildcard) ( `any` )
   - character set ( `set(...)` )
-- rule combinator
+- `rule` combinator
   - used in right-hand side of non-teriminal
 - the other combinators
   - zero or one ( `e.?` )
