@@ -39,46 +39,46 @@ class JsonSpec extends FunSpec with DiagrammedAssertions {
     lazy val FALSE = token("false")
     lazy val NULL = token("null")
 
-    lazy val jvalue: Parser[JValue] = jobject | jarray | jstring | jnumber | jboolean | jnull
+    lazy val jvalue: P[JValue] = rule(jobject | jarray | jstring | jnumber | jboolean | jnull)
 
-    lazy val jobject: Parser[JValue] = for {
+    lazy val jobject: P[JValue] = rule{for {
       _ <- LBRACE
       properties <- pair.repeat0By(COMMA)
       _ <- RBRACE
-    } yield JObject(properties:_*)
+    } yield JObject(properties:_*)}
 
-    lazy val pair: Parser[(String, JValue)] = for {
+    lazy val pair: P[(String, JValue)] = rule{for {
       key <- string
       _ <- COLON
       value <- jvalue
-    } yield (key, value)
+    } yield (key, value)}
 
-    lazy val jarray: Parser[JValue] = for {
+    lazy val jarray: P[JValue] = rule{for {
       _ <- LBRACKET
       elements <- jvalue.repeat0By(COMMA)
       _ <- RBRACKET
-    } yield JArray(elements:_*)
+    } yield JArray(elements:_*)}
 
-    lazy val string: Parser[String] = for {
+    lazy val string: Parser[String] = rule{for {
       _ <- $("\"")
       contents <- ($("\\") ~ any ^^ { case _ ~ ch => escape(ch).toString} | except('"')).*
       _ <- $("\"")
       _ <- space.*
-    } yield contents.mkString
+    } yield contents.mkString}
 
-    lazy val jstring: Parser[JValue] = string ^^ {v => JString(v)}
+    lazy val jstring: Parser[JValue] = rule(string ^^ {v => JString(v)})
 
-    lazy val jnumber: Parser[JValue] = for {
+    lazy val jnumber: Parser[JValue] = rule{for {
       value <- (set('0'to'9').+) ^^ { case digits => JNumber(digits.mkString.toInt) }
       _ <- space.*
-    } yield value
+    } yield value}
 
-    lazy val jboolean: Parser[JValue] = (
+    lazy val jboolean: Parser[JValue] = rule(
       TRUE ^^ {_ => JBoolean(true)}
     | FALSE ^^ {_ => JBoolean(false)}
     )
 
-    lazy val jnull: Parser[JValue] = NULL ^^ {_ => JNull}
+    lazy val jnull: Parser[JValue] = rule(NULL ^^ {_ => JNull})
   }
 
   import JsonParser._
