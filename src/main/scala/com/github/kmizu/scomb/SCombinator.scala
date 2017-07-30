@@ -491,7 +491,7 @@ abstract class SCombinator[R] {self =>
   final def r(literal: Regex): Parser[String] = regularExpression(literal)
 
   final def string(literal: String): Parser[String] = parserOf{index =>
-    if(isEOF(index)) {
+    if(literal.length > 0 && isEOF(index)) {
       Failure(s"expected:`${literal}` actual:EOF", index)
     } else if(current(index).startsWith(literal)) {
       Success(literal, index + literal.length)
