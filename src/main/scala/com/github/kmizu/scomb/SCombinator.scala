@@ -96,6 +96,12 @@ abstract class SCombinator[R] {self =>
     } yield u
 
     /**
+      * This method is same as `>>` method.
+      * The only difference is operator precedence.
+      */
+    def ~>[U](rhs: Parser[U]): Parser[U] = this >> rhs
+
+    /**
       * Returns a sequential Parser consists of <code>this</code> and <code>rhs</code>.
       * Note that the result of <code>rhs</code> is ignored.
       * It is same as
@@ -110,6 +116,12 @@ abstract class SCombinator[R] {self =>
       t <- this
       _ <- rhs
     } yield t
+
+    /**
+      * This method is same as `<<` method.
+      * The only difference is operator precedence.
+      */
+    def ~<[U](rhs: Parser[U]): Parser[T] = this << rhs
 
     /**
       * Returns a repetition Parser (0 or more), which separator is
