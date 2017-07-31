@@ -56,5 +56,5 @@ releaseProcess := Seq[ReleaseStep](
 releaseCrossBuild := true
 
 releaseTagName := {
-  "releases/" + (version in ThisBuild).value
+  "v" + (version in ThisBuild).value
 }
