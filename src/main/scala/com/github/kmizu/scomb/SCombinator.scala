@@ -10,9 +10,9 @@ abstract class SCombinator[R] {self =>
 
   protected var recent: Option[Failure] = None
 
-  protected var fatal: Option[Error] = None
-
   protected val locations: mutable.Map[Int, Location] = mutable.Map[Int, Location]()
+
+  private[this] val DefaultLabel: String = "fail"
 
   lazy val space: Parser[String] = (
     $(" ") | $("\t") | $("\b") | $("\f") | $("\r\n") | $("\r") | $("\n")
@@ -53,13 +53,12 @@ abstract class SCombinator[R] {self =>
           repeat(next1) match {
             case Success(result, next2) =>
               Success(value::result, next2)
-            case r@Error(_, _) => r
             case r => throw new RuntimeException("cannot be " + r)
           }
-        case Failure(message, next) =>
+        case Failure(message, next, DefaultLabel) =>
           Success(Nil, index)
-        case f@Error(_, _) =>
-          f
+        case failure@Failure(message, next, label) =>
+          failure
       }
       repeat(index) match {
         case r@Success(_, _) => r
@@ -151,20 +150,6 @@ abstract class SCombinator[R] {self =>
     }
 
     /**
-      * Return the same parser except it replace the failure
-      * message with <code>message</code>
-      * @param message
-      * @return
-      */
-    def replace(message: String): Parser[T] = parserOf{ index =>
-      this(index) match {
-        case r@Success(_, _) => r
-        case Failure(_, index) => Failure(message, index)
-        case Error(_, index) => Error(message, index)
-      }
-    }
-
-    /**
       * Returns a sequential Parser consists of <code>this</code> and <code>rhs</code>.
       */
     def ~[U](right: Parser[U]) : Parser[T ~ U] = parserOf{index =>
@@ -173,15 +158,11 @@ abstract class SCombinator[R] {self =>
           right(next1) match {
             case Success(value2, next2) =>
               Success(new ~(value1, value2), next2)
-            case failure@Failure(_, _) =>
+            case failure@Failure(_, _, _) =>
               failure
-            case fatal@Error(_, _) =>
-              fatal
           }
-        case failure@Failure(message, next) =>
+        case failure@Failure(_, _, _) =>
           failure
-        case fatal@Error(_, _) =>
-          fatal
       }
     }
 
@@ -191,13 +172,13 @@ abstract class SCombinator[R] {self =>
     def ? : Parser[Option[T]] = parserOf{index =>
       this(index) match {
         case Success(v, i) => Success(Some(v), i)
-        case Failure(message, i) => Success(None, index)
-        case error@Error(_, _) => error
+        case Failure(message, i, DefaultLabel) => Success(None, index)
+        case failure@Failure(_, _, _) => failure
       }
     }
 
     /**
-      * Returns a alternation Parser.
+      * Returns an alternation Parser.
       * It first trys <code>this</code>.
       * It trys <code>rhs</code> iff <code>this</code> failed.
       * @param rhs the alternation
@@ -207,8 +188,21 @@ abstract class SCombinator[R] {self =>
     def |[U >: T](rhs: Parser[U]): Parser[U] = parserOf{index =>
       this(index) match {
         case success@Success(_, _) => success
-        case Failure(_, _) => rhs(index)
-        case fatal@Error(_, _) => fatal
+        case Failure(_, _, DefaultLabel) => rhs(index)
+        case failure@Failure(_, _, _) => failure
+      }
+    }
+
+    /**
+      * Returns an alternation parser.
+      * It first trys <code>this</code>.
+      * It trys <cdde>rhs></code> iff <code>this</code> failed and parameters are appropriate catchLabels.
+      */
+    def |~[U >: T](rhs: Parser[U], catchLabels: String*): Parser[U] = parserOf{index =>
+      this(index) match {
+        case success@Success(_, _) => success
+        case Failure(_, _, label) if catchLabels.contains(label) => rhs(index)
+        case failure@Failure(_, _, _) => failure
       }
     }
 
@@ -227,9 +221,7 @@ abstract class SCombinator[R] {self =>
           s
         case (_, s@Success(_, _)) =>
           s
-        case (f@Failure(_, _), _) =>
-          f
-        case (f@Error(_, _), _) =>
+        case (f@Failure(_, _, _), _) =>
           f
       }
     }
@@ -248,38 +240,20 @@ abstract class SCombinator[R] {self =>
             Success(value, next)
           else
             Failure(message, index)
-        case failure@Failure(_, _) =>
+        case failure@Failure(_, _, _) =>
           failure
-        case fatal@Error(_, _) =>
-          fatal
       }
     }
 
-    /**
-      * Replace the failure parser with the error parser.
-      * It is used to suppress backtracks.
-      * @param message the error message
-      */
-    def withErrorMessage(message: String): Parser[T] = parserOf{ index =>
+    def labeled(newLabel: String): Parser[T] = parserOf{index =>
       this(index) match {
-        case r@Success(_, _) => r
-        case Failure(_, index) => Error(message, index)
-        case r@Error(_, _) => r
+        case success@Success(_, _) => success
+        case Failure(message, index, oldLabel) =>
+          Failure(message, index, newLabel)
       }
     }
 
-    /**
-      * This method is same as `withErrorMessage()` except for
-      * no message being specified.
-      * @return
-      */
-    def commit: Parser[T] = parserOf{index =>
-      this(index) match {
-        case r@Success(_, _) => r
-        case Failure(message, index)  => Error(message, index)
-        case r@Error(_, _) => r
-      }
-    }
+    def l(newLabel: String): Parser[T] = labeled(newLabel)
 
     /**
       * It is same as <code>filter</code>
@@ -293,8 +267,7 @@ abstract class SCombinator[R] {self =>
     def map[U](function: T => U): Parser[U] = parserOf{index =>
       this(index) match {
         case Success(value, next) => Success(function(value), next)
-        case failure@Failure(_, _) => failure
-        case fatal@Error(_, _) => fatal
+        case failure@Failure(_, _, _) => failure
       }
     }
 
@@ -317,10 +290,8 @@ abstract class SCombinator[R] {self =>
       this(index) match {
         case Success(value, next) =>
           function.apply(value).apply(next)
-        case failure@Failure(_, _) =>
+        case failure@Failure(_, _, _) =>
           failure
-        case fatal@Error(_, _) =>
-          fatal
       }
     }
   }
@@ -358,11 +329,9 @@ abstract class SCombinator[R] {self =>
   }
 
   /**
-    * A data constructor in the case parser failed. It can be recovered by <code>|</code> operator
-    * @param message the error message
-    * @param index the next index
-    */
-  case class Failure(override val message: String, override val index: Int) extends ParseNonSuccess {
+   * A data constructor in the case parser failed with catch-labels. It can be recovered by <code>|~</code> operator
+   */
+  case class Failure(override val message: String, override val index: Int, label: String) extends ParseNonSuccess {
     self.recent match {
       case None => self.recent = Some(this)
       case Some(failure) if index >= failure.index => self.recent = Some(this)
@@ -370,14 +339,8 @@ abstract class SCombinator[R] {self =>
     }
     override def value: Option[Nothing] = None
   }
-
-  /**
-    * A data constructor in the case parser failed. It must not be recovered.
-    * @param message the error message
-    * @param index the next index
-    */
-  case class Error(override val message: String, override val index: Int) extends ParseNonSuccess {
-    override def value: Option[Nothing] = None
+  object Failure {
+    def apply(message: String, index: Int): Failure = Failure(message, index, DefaultLabel)
   }
 
   /**
@@ -441,8 +404,12 @@ abstract class SCombinator[R] {self =>
     calculateLocations()
     root(0) match {
       case s@Success(_, _) => s
-      case f@Failure(_, _) => recent.get
-      case f@Error(_,  _) => f
+      case f@Failure(_, _, label) =>
+        if(label == DefaultLabel) {
+          this.recent.get
+        } else {
+          f
+        }
     }
   }
 
@@ -454,10 +421,12 @@ abstract class SCombinator[R] {self =>
         } else {
           Result.Failure(locations(i), s"unconsumed input:`${current(i)}`")
         }
-      case Failure(message, index) =>
-        Result.Failure(locations(index), message)
-      case Error(message, index) =>
-        Result.Failure(locations(index), message)
+      case Failure(message, index, label) =>
+        if(label == DefaultLabel) {
+          Result.Failure(locations(index), message)
+        } else {
+          Result.Failure(locations(index), s"${message} in <${label}>")
+        }
     }
   }
 
@@ -485,7 +454,7 @@ abstract class SCombinator[R] {self =>
       val substring = current(index)
       literal.findPrefixOf(substring) match {
         case Some(prefix) => Success(prefix, index + prefix.length)
-        case None => Failure(s"expected:`${literal}`", index)
+        case None => Failure(s"expected:`${literal}` actual: `${current(index)(0)}`", index)
       }
     }
   }
@@ -508,7 +477,7 @@ abstract class SCombinator[R] {self =>
     } else if(current(index).startsWith(literal)) {
       Success(literal, index + literal.length)
     } else {
-      Failure(s"expected:`${literal}`", index)
+      Failure(s"expected:`${literal}` actual:`${current(index)(0)}`", index)
     }
   }
 
@@ -529,8 +498,7 @@ abstract class SCombinator[R] {self =>
   final def not(parser: Parser[Any]): Parser[Any] = parserOf{index =>
     parser(index) match {
       case Success(_, _) => Failure("not expected", index)
-      case Failure(_, _) => Success("", index)
-      case f@Error(_, _) => f
+      case Failure(_, _, _) => Success("", index)
     }
   }
 

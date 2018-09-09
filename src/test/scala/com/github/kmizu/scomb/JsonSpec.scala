@@ -44,25 +44,25 @@ class JsonSpec extends FunSpec with DiagrammedAssertions {
     lazy val jobject: P[JValue] = rule{for {
       _ <- LBRACE
       properties <- pair.repeat0By(COMMA)
-      _ <- RBRACE
+      _ <- RBRACE.l("RBRACE")
     } yield JObject(properties:_*)}
 
     lazy val pair: P[(String, JValue)] = rule{for {
       key <- string
-      _ <- COLON
+      _ <- COLON.l("COLON")
       value <- jvalue
     } yield (key, value)}
 
     lazy val jarray: P[JValue] = rule{for {
       _ <- LBRACKET
       elements <- jvalue.repeat0By(COMMA)
-      _ <- RBRACKET
+      _ <- RBRACKET.l("rbracket")
     } yield JArray(elements:_*)}
 
     lazy val string: Parser[String] = rule{for {
       _ <- $("\"")
       contents <- ($("\\") ~ any ^^ { case _ ~ ch => escape(ch).toString} | except('"')).*
-      _ <- $("\"")
+      _ <- $("\"").l("double quote")
       _ <- space.*
     } yield contents.mkString}
 
@@ -139,7 +139,15 @@ class JsonSpec extends FunSpec with DiagrammedAssertions {
     it("cannot parse incorrect object") {
       val failure = parse("{").asInstanceOf[Result.Failure]
       assert(Location(1, 2) == failure.location)
-      assert("""expected:`}` actual:EOF""" == failure.message)
+      assert("""expected:`}` actual:EOF in <RBRACE>""" == failure.message)
+    }
+  }
+
+  describe("The JsonParser") {
+    it("cannot parse incorrect array") {
+      val failure = parse("[1, 2, ]").asInstanceOf[Result.Failure]
+      assert(Location(1, 6) == failure.location)
+      assert("""expected:`]` actual:`,` in <rbracket>""" == failure.message)
     }
   }
 }
