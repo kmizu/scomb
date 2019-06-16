@@ -1,5 +1,9 @@
 language: scala
 sudo: false
-jdk: oraclejdk8
-script: sbt test
-scala: 2.12.3
+dist: xenial
+jdk: openjdk8
+script: sbt "++${TRAVIS_SCALA_VERSION}" test
+scala:
+- 2.11.12
+- 2.12.8
+- 2.13.0

@@ -2,15 +2,17 @@ organization := "com.github.kmizu"
 
 name := "scomb"
 
-scalaVersion := "2.12.6"
+def Scala212 = "2.12.8"
+
+scalaVersion := Scala212
 
 publishMavenStyle := true
 
-crossScalaVersions := Seq("2.11.11", scalaVersion.value)
+crossScalaVersions := Seq("2.11.12", Scala212, "2.13.0")
 
 libraryDependencies ++= Seq(
-  "org.scalatest" %% "scalatest" % "3.0.0" % "test",
-  "org.scalacheck" %% "scalacheck" % "1.12.6" % "test"
+  "org.scalatest" %% "scalatest" % "3.0.8" % "test",
+  "org.scalacheck" %% "scalacheck" % "1.14.0" % "test"
 )
 
 val scaladocBranch = settingKey[String]("branch name for scaladoc -doc-source-url")
