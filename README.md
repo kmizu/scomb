@@ -1,14 +1,14 @@
 ## SComb: Simple but Powerful Parser Combinator Library in Scala
  
 [![Build Status](https://travis-ci.org/kmizu/scomb.png?branch=master)](https://travis-ci.org/kmizu/scomb)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.kmizu/scomb_2.12/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.kmizu/scomb_2.12)
-[![Scaladoc](http://javadoc-badge.appspot.com/com.github.kmizu/scomb_2.12.svg?label=scaladoc)](http://javadoc-badge.appspot.com/com.github.kmizu/scomb_2.12/com/github/kmizu/scomb/index.html)
-[![Reference Status](https://www.versioneye.com/java/com.github.kmizu:scomb_2.11/reference_badge.svg?style=flat)](https://www.versioneye.com/java/com.github.kmizu:scomb_2.12/references)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.kmizu/scomb_2.13/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.kmizu/scomb_2.13)
+[![Scaladoc](http://javadoc-badge.appspot.com/com.github.kmizu/scomb_2.13.svg?label=scaladoc)](http://javadoc-badge.appspot.com/com.github.kmizu/scomb_2.13/com/github/kmizu/scomb/index.html)
+[![Reference Status](https://www.versioneye.com/java/com.github.kmizu:scomb_2.13/reference_badge.svg?style=flat)](https://www.versioneye.com/java/com.github.kmizu:scomb_2.13/references)
 
 SComb (su-ko-n-bu) is a simple but powerful parser combinator library written in Scala.
 SComb aims to replace [scala-parser-combinators](https://github.com/scala/scala-parser-combinators).
 
-## Features of SComb (0.7.0):
+## Features of SComb (0.8.1):
 
 - primitive combinators
   - string literal ( `""` )
@@ -64,15 +64,15 @@ a rule must be enclosed by `rule { ... }` combinator.
 
 Some examples are below:
 
-- [CalculatorSpec](https://github.com/kmizu/scomb/blob/v0.7.0/src/test/scala/com/github/kmizu/scomb/CalculatorSpec.scala)
+- [CalculatorSpec](https://github.com/kmizu/scomb/blob/v0.8.1/src/test/scala/com/github/kmizu/scomb/CalculatorSpec.scala)
   - Arithmetic Expression Parser
-- [JsonSpec](https://github.com/kmizu/scomb/blob/v0.7.0/src/test/scala/com/github/kmizu/scomb/JsonSpec.scala)
+- [JsonSpec](https://github.com/kmizu/scomb/blob/v0.8.1/src/test/scala/com/github/kmizu/scomb/JsonSpec.scala)
   - JSON Parser
-- [RegularExpressionSpec](https://github.com/kmizu/scomb/blob/0.7.0/src/test/scala/com/github/kmizu/scomb/RegularExpressionSpec.scala)
+- [RegularExpressionSpec](https://github.com/kmizu/scomb/blob/v0.8.1/src/test/scala/com/github/kmizu/scomb/RegularExpressionSpec.scala)
   - (Basic) Regular Expression Parser
-- [PrimitiveSpec](https://github.com/kmizu/scomb/blob/0.7.0/src/test/scala/com/github/kmizu/scomb/PrimitiveSpec.scala)
+- [PrimitiveSpec](https://github.com/kmizu/scomb/blob/v0.8.1/src/test/scala/com/github/kmizu/scomb/PrimitiveSpec.scala)
   - Tests of primitive combinators
 
 ## Scaladoc
 
-[Here](http://javadoc-badge.appspot.com/com.github.kmizu/scomb_2.12/com/github/kmizu/scomb/index.html)
+[Here](http://javadoc-badge.appspot.com/com.github.kmizu/scomb_2.13/com/github/kmizu/scomb/index.html)
