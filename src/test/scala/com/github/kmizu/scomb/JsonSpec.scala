@@ -10,9 +10,9 @@ class JsonSpec extends FunSpec with DiagrammedAssertions {
   case class JNumber(value: Double) extends JValue
   case class JBoolean(value: Boolean) extends JValue
   case object JNull extends JValue
-  object JsonParser extends SCombinator[JValue] {
-    override def root: Parser[JValue] = for{
-      _ <- space.*
+  object JsonParser extends SCombinator {
+    def root: Parser[JValue] = for{
+      _ <- DefaultSpace.*
       v <- jvalue
     } yield v
 
@@ -29,15 +29,15 @@ class JsonSpec extends FunSpec with DiagrammedAssertions {
       case otherwise => otherwise
     }
 
-    lazy val LBRACKET = token("[")
-    lazy val RBRACKET = token("]")
-    lazy val LBRACE = token("{")
-    lazy val RBRACE = token("}")
-    lazy val COLON = token(":")
-    lazy val COMMA = token(",")
-    lazy val TRUE = token("true")
-    lazy val FALSE = token("false")
-    lazy val NULL = token("null")
+    lazy val LBRACKET = defaultToken("[")
+    lazy val RBRACKET = defaultToken("]")
+    lazy val LBRACE = defaultToken("{")
+    lazy val RBRACE = defaultToken("}")
+    lazy val COLON = defaultToken(":")
+    lazy val COMMA = defaultToken(",")
+    lazy val TRUE = defaultToken("true")
+    lazy val FALSE = defaultToken("false")
+    lazy val NULL = defaultToken("null")
 
     lazy val jvalue: P[JValue] = rule(jobject | jarray | jstring | jnumber | jboolean | jnull)
 
@@ -63,14 +63,14 @@ class JsonSpec extends FunSpec with DiagrammedAssertions {
       _ <- $("\"")
       contents <- ($("\\") ~ any ^^ { case _ ~ ch => escape(ch).toString} | except('"')).*
       _ <- $("\"").l("double quote")
-      _ <- space.*
+      _ <- DefaultSpace.*
     } yield contents.mkString}
 
     lazy val jstring: Parser[JValue] = rule(string ^^ {v => JString(v)})
 
     lazy val jnumber: Parser[JValue] = rule{for {
       value <- (set('0'to'9').+) ^^ { case digits => JNumber(digits.mkString.toInt) }
-      _ <- space.*
+      _ <- DefaultSpace.*
     } yield value}
 
     lazy val jboolean: Parser[JValue] = rule(
@@ -79,6 +79,8 @@ class JsonSpec extends FunSpec with DiagrammedAssertions {
     )
 
     lazy val jnull: Parser[JValue] = rule(NULL ^^ {_ => JNull})
+
+    def parse(input: String): Result[JValue] = parse(root, input)
   }
 
   import JsonParser._

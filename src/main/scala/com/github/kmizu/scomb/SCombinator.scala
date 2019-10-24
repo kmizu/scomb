@@ -3,7 +3,7 @@ package com.github.kmizu.scomb
 import scala.collection.mutable
 import scala.util.matching.Regex
 
-abstract class SCombinator[R] {self =>
+trait SCombinator {self =>
   case class ~[+A, +B](a: A, b: B)
 
   protected var input: String = ""
@@ -16,9 +16,14 @@ abstract class SCombinator[R] {self =>
 
   private[this] val DefaultLabel: String = "fail"
 
-  lazy val space: Parser[String] = (
+  protected final val DefaultSpace: Parser[String] = (
     $(" ") | $("\t") | $("\b") | $("\f") | $("\r\n") | $("\r") | $("\n")
   )
+
+  protected final def defaultToken(symbol: String): Parser[String] = for {
+    s <- $(symbol)
+    _ <- DefaultSpace.*
+  } yield s
 
   def EOF: Parser[String] = parserOf{index =>
     if(input.length == index)
@@ -26,13 +31,6 @@ abstract class SCombinator[R] {self =>
     else
       Failure(s"expected eof, actual: `${input.charAt(index)}`", index)
   }
-
-  def token(symbol: String): Parser[String] = for {
-    s <- $(symbol)
-    _ <- space.*
-  } yield s
-
-
 
   /**
     * A Parser is used to parse the input from the outer class instances.
@@ -415,11 +413,6 @@ abstract class SCombinator[R] {self =>
     override def value: Option[Nothing] = None
   }
 
-  /**
-    * The first nonterminal.  The parsing starts from the Parser that this method returns.
-    */
-  def root: Parser[R]
-
   protected final def isEOF(index: Int): Boolean = index >= input.length
 
   protected final def current(index: Int): String = input.substring(index)
@@ -469,12 +462,12 @@ abstract class SCombinator[R] {self =>
     locations(i) = Location(line, column)
   }
 
-  final def parsePartial(input: String): ParseResult[R] = synchronized {
+  final def parsePartial[R](rule: Parser[R], input: String): ParseResult[R] = synchronized {
     this.input = input
     this.recent = None
     this.locations.clear()
     calculateLocations()
-    root(0) match {
+    rule(0) match {
       case s@Success(_, _) => s
       case f@Failure(_, _, label) =>
         if(label == DefaultLabel) {
@@ -487,8 +480,8 @@ abstract class SCombinator[R] {self =>
     }
   }
 
-  final def parse(input: String): Result[R] = synchronized {
-    parsePartial(input) match {
+  final def parse[R](rule: Parser[R], input: String): Result[R] = synchronized {
+    parsePartial(rule, input) match {
       case Success(value, i) =>
         if(isEOF(i)) {
           Result.Success(value)
