@@ -3,7 +3,7 @@ package com.github.kmizu.scomb
 import org.scalatest.{DiagrammedAssertions, FunSpec}
 
 class CalculatorSpec extends FunSpec with DiagrammedAssertions {
-  object Calculator extends SCombinator[Int] {
+  object Calculator extends SCombinator {
     def root: Parser[Int] = expression
 
     def expression: Parser[Int] = rule(A)
@@ -23,6 +23,8 @@ class CalculatorSpec extends FunSpec with DiagrammedAssertions {
         _ <- string("("); e <- expression; _ <- string(")")} yield e) | number
     }
     def number: P[Int] = rule(set('0'to'9').+.map{ digits => digits.mkString.toInt})
+
+    def parse(input: String): Result[Int] = parse(root, input)
   }
   import Calculator._
 

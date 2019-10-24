@@ -3,24 +3,24 @@ package com.github.kmizu.scomb
 import org.scalatest.{DiagrammedAssertions, FunSpec}
 
 class PrimitiveSpec extends FunSpec with DiagrammedAssertions {
-  object P1 extends SCombinator[String] {
-    override def root: P[String] = $("")
+  object P1 extends SCombinator {
+    def root: P[String] = $("")
   }
-  object P2 extends SCombinator[String] {
-    override def root: P[String] = $("H")
+  object P2 extends SCombinator {
+    def root: P[String] = $("H")
   }
-  object P3 extends SCombinator[String] {
-    override def root: P[String] = r("""[0-9]+""".r)
+  object P3 extends SCombinator {
+    def root: P[String] = r("""[0-9]+""".r)
   }
-  object P4 extends SCombinator[String] {
-    override def root: P[String] = any.map{_.toString}
+  object P4 extends SCombinator {
+    def root: P[String] = any.map{_.toString}
   }
-  object P5 extends SCombinator[String] {
-    override def root: P[String] = except('H')
+  object P5 extends SCombinator {
+    def root: P[String] = except('H')
   }
   describe("$ combinator") {
     it("""$("") and string("") always succeed""") {
-      P1.parsePartial("") match {
+      P1.parsePartial(P1.root, "") match {
         case P1.Success(v, index) =>
           assert("" == v)
           assert(0 == index)
@@ -29,21 +29,21 @@ class PrimitiveSpec extends FunSpec with DiagrammedAssertions {
       }
     }
     it("""$("H") succeed for string starts with 'H'""") {
-      P2.parsePartial("H") match {
+      P2.parsePartial(P2.root, "H") match {
         case P2.Success(v, index) =>
           assert("H" == v)
           assert(1 == index)
         case _ =>
           assert(false)
       }
-      P2.parsePartial("Hello") match {
+      P2.parsePartial(P2.root, "Hello") match {
         case P2.Success(v, index) =>
           assert("H" == v)
           assert(1 == index)
         case _ =>
           assert(false)
       }
-      P2.parsePartial("I") match {
+      P2.parsePartial(P2.root, "I") match {
         case P2.Success(_, _) =>
           assert(false)
         case n:P2.ParseNonSuccess =>
@@ -52,21 +52,22 @@ class PrimitiveSpec extends FunSpec with DiagrammedAssertions {
       }
     }
     it("""r(...) succeed for given regular expression""") {
-      P3.parsePartial("") match {
+      import P3._
+      parsePartial(root, "") match {
         case P3.Success(_, _) =>
           assert(false)
         case n:P3.ParseNonSuccess =>
           assert(0 == n.index)
           assert(None == n.value)
       }
-      P3.parsePartial("012345") match {
+      parsePartial(root, "012345") match {
         case P3.Success(v, i) =>
           assert("012345" == v)
           assert(6 == i)
         case _:P3.ParseNonSuccess =>
           assert(false)
       }
-      P3.parsePartial("012abc") match {
+      parsePartial(root, "012abc") match {
         case P3.Success(v, i) =>
           assert("012" == v)
           assert(3 == i)
@@ -75,35 +76,36 @@ class PrimitiveSpec extends FunSpec with DiagrammedAssertions {
       }
     }
     it("`any` succeed for any one character") {
-      P4.parsePartial("") match {
+      import P4._
+      parsePartial(root, "") match {
         case P4.Success(_, _) =>
           assert(false)
         case n:P4.ParseNonSuccess =>
           assert(0 == n.index)
           assert(None == n.value)
       }
-      P4.parsePartial("a") match {
+      parsePartial(root, "a") match {
         case P4.Success(v, i) =>
           assert("a" == v)
           assert(1 == i)
         case _:P4.ParseNonSuccess =>
           assert(false)
       }
-      P4.parsePartial("b") match {
+      parsePartial(root, "b") match {
         case P4.Success(v, i) =>
           assert("b" == v)
           assert(1 == i)
         case _:P4.ParseNonSuccess =>
           assert(false)
       }
-      P4.parsePartial("ab") match {
+      parsePartial(root, "ab") match {
         case P4.Success(v, i) =>
           assert("a" == v)
           assert(1 == i)
         case _:P4.ParseNonSuccess =>
           assert(false)
       }
-      P4.parsePartial("ba") match {
+      parsePartial(root, "ba") match {
         case P4.Success(v, i) =>
           assert("b" == v)
           assert(1 == i)
@@ -112,21 +114,22 @@ class PrimitiveSpec extends FunSpec with DiagrammedAssertions {
       }
     }
     it("""forall c. except(c) succeed iff input doesn't start with c""") {
-      P5.parsePartial("") match {
+      import P5._
+      parsePartial(root, "") match {
         case P5.Success(_, _) =>
           assert(false)
         case n:P5.ParseNonSuccess =>
           assert(0 == n.index)
           assert(None == n.value)
       }
-      P5.parsePartial("H")  match {
+      parsePartial(root, "H")  match {
         case P5.Success(_, _) =>
           assert(false)
         case n:P5.ParseNonSuccess =>
           assert(0 == n.index)
           assert(None == n.value)
       }
-      P5.parsePartial("I") match {
+      parsePartial(root, "I") match {
         case P5.Success(v, i) =>
           assert("I" == v)
           assert(1 == i)

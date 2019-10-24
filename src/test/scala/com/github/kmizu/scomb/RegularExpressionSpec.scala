@@ -9,7 +9,7 @@ class RegularExpressionSpec extends FunSpec with DiagrammedAssertions {
   case class Repeat(body: Regexp) extends Regexp
   case class Value(value: Char) extends Regexp
 
-  object RegularExpressionParser extends SCombinator[Regexp] {
+  object RegularExpressionParser extends SCombinator {
     def root: Parser[Regexp] = expression
 
     def expression: Parser[Regexp] = alternative
@@ -41,6 +41,7 @@ class RegularExpressionSpec extends FunSpec with DiagrammedAssertions {
       _ <- $("\\")
       ch <- any
     } yield Value(ch)))
+    def parse(input: String): Result[Regexp] = parse(root, input)
   }
   import RegularExpressionParser._
 
