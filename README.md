@@ -32,7 +32,7 @@ SComb aims to replace [scala-parser-combinators](https://github.com/scala/scala-
 Add the following line to your `build.sbt`
 
 ```scala
-libraryDependencies += "com.github.kmizu" %% "scomb" % "0.8.1"
+libraryDependencies += "com.github.kmizu" %% "scomb" % "0.9.0"
 ```
 
 ## Getting Started
