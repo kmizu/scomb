@@ -1,8 +1,10 @@
 package com.github.kmizu.scomb
 
-import org.scalatest.{DiagrammedAssertions, FunSpec}
+import jdk.jshell.Diag
+import org.scalatest.funspec.AnyFunSpec
+import org.scalatest.diagrams.Diagrams
 
-class JsonSpec extends FunSpec with DiagrammedAssertions {
+class JsonSpec extends AnyFunSpec with Diagrams {
   sealed abstract class JValue
   case class JObject(properties: (String, JValue)*) extends JValue
   case class JArray(elements: JValue*) extends JValue

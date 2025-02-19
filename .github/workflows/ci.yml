@@ -1,0 +1,26 @@
+name: scomb
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: 21
+        cache: sbt
+    - uses: sbt/setup-sbt@v1
+    - name: Build and test
+      shell: bash
+      run: sbt -v +test

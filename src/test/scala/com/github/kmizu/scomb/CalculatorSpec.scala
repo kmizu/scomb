@@ -1,8 +1,9 @@
 package com.github.kmizu.scomb
 
-import org.scalatest.{DiagrammedAssertions, FunSpec}
+import org.scalatest.diagrams.Diagrams
+import org.scalatest.funspec.AnyFunSpec
 
-class CalculatorSpec extends FunSpec with DiagrammedAssertions {
+class CalculatorSpec extends AnyFunSpec with Diagrams {
   object Calculator extends SCombinator {
     def root: Parser[Int] = expression
 

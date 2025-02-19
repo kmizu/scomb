@@ -1,8 +1,9 @@
 package com.github.kmizu.scomb
 
-import org.scalatest.{DiagrammedAssertions, FunSpec}
+import org.scalatest.diagrams.Diagrams
+import org.scalatest.funspec.AnyFunSpec
 
-class PrimitiveSpec extends FunSpec with DiagrammedAssertions {
+class PrimitiveSpec extends AnyFunSpec with Diagrams{
   object P1 extends SCombinator {
     def root: P[String] = $("")
   }

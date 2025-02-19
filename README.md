@@ -1,6 +1,6 @@
 ## SComb: Simple but Powerful Parser Combinator Library in Scala
  
-[![Build Status](https://travis-ci.org/kmizu/scomb.png?branch=master)](https://travis-ci.org/kmizu/scomb)
+[![Build Status](https://github.com/kmizu/scomb/actions/workflows/ci.yml/badge.svg)](https://github.com/kmizu/scomb/actions/workflows/ci.yml)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.kmizu/scomb_2.13/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.kmizu/scomb_2.13)
 [![Scaladoc](http://javadoc-badge.appspot.com/com.github.kmizu/scomb_2.13.svg?label=scaladoc)](http://javadoc-badge.appspot.com/com.github.kmizu/scomb_2.13/com/github/kmizu/scomb/index.html)
 [![Reference Status](https://www.versioneye.com/java/com.github.kmizu:scomb_2.13/reference_badge.svg?style=flat)](https://www.versioneye.com/java/com.github.kmizu:scomb_2.13/references)

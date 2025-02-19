@@ -1,8 +1,9 @@
 package com.github.kmizu.scomb
 
-import org.scalatest.{DiagrammedAssertions, FunSpec}
+import org.scalatest.diagrams.Diagrams
+import org.scalatest.funspec.AnyFunSpec
 
-class RegularExpressionSpec extends FunSpec with DiagrammedAssertions {
+class RegularExpressionSpec extends AnyFunSpec with Diagrams {
   sealed abstract class Regexp
   case class Sequence(lhs: Regexp, rhs: Regexp) extends Regexp
   case class Choice(lhs: Regexp, rhs: Regexp) extends Regexp
