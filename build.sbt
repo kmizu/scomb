@@ -2,13 +2,11 @@ organization := "com.github.kmizu"
 
 name := "scomb"
 
-def Scala212 = "2.12.8"
-
-scalaVersion := Scala212
+scalaVersion := "2.13.16"
 
 publishMavenStyle := true
 
-crossScalaVersions := Seq("2.11.12", Scala212, "2.13.0")
+crossScalaVersions := Seq("2.13.16")
 
 libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "3.0.8" % "test",
@@ -19,16 +17,16 @@ val scaladocBranch = settingKey[String]("branch name for scaladoc -doc-source-ur
 
 scaladocBranch := "master"
 
-scalacOptions in (Compile, doc) ++= { Seq(
+Compile / doc/ scalacOptions ++= { Seq(
   "-sourcepath", baseDirectory.value.getAbsolutePath,
   "-doc-source-url", s"https://github.com/kmizu/scomb/tree/${scaladocBranch.value}€{FILE_PATH}.scala"
 )}
 
-testOptions in Test += Tests.Argument("-u", "target/scalatest-reports")
+Test / testOptions += Tests.Argument("-u", "target/scalatest-reports")
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions")
 
-initialCommands in console += {
+console / initialCommands += {
   Iterator("com.github.kmizu.scomb._").map("import "+).mkString("\n")
 }
 
