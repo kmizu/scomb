@@ -2,7 +2,7 @@ organization := "com.github.kmizu"
 
 name := "scomb"
 
-scalaVersion := "3.3.3"
+scalaVersion := "3.3.6"
 
 publishMavenStyle := true
 
